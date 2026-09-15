@@ -1,0 +1,54 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+dist/
+build/
+.venv/
+venv/
+env/
+
+# Django
+*.log
+db.sqlite3
+db.sqlite3-journal
+/staticfiles/
+/media/
+*.pot
+*.mo
+
+# Environment & secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Testing & coverage
+.coverage
+.coverage.*
+htmlcov/
+.pytest_cache/
+.tox/
+coverage.xml
+*.cover
+
+# Type checking & linting
+.mypy_cache/
+.ruff_cache/
+.dmypy.json
+
+# Docker
+docker-compose.override.yml
+
+# Editors & OS
+.idea/
+.vscode/
+*.swp
+.DS_Store
+
+# Backups — never commit financial data
+*.dump
+*.sql.gz
+backups/
