@@ -1,0 +1,229 @@
+# CI — the ten gates of 11 §6.
+#
+# 13 §1: *"Tests are the only reviewer."* This project has one builder, and
+# 11 §3.2 is explicit that a phantom review step is worse than an absent one.
+# CI is therefore not a safety net over review — it **is** the review.
+#
+# Each gate is its own job so that a failure names itself in the PR checks
+# list. They run in parallel except where a dependency is real, because a
+# green build that took twenty minutes is a build people route around.
+
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+  workflow_dispatch:
+
+concurrency:
+  # A superseded run on the same ref is cancelled. Two runs racing to report on
+  # the same commit produces a checks list that disagrees with itself.
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  # 12 §4: configuration is read from the environment at process start. These
+  # are CI-only values with no relationship to any real environment, and
+  # SEC-SEC-005 requires them to be distinct per environment — which is why
+  # they are written here rather than read from a repository secret.
+  DJANGO_SETTINGS_MODULE: config.settings.test
+  DJANGO_SECRET_KEY: ci-only-not-a-real-secret-do-not-reuse
+  DJANGO_DEBUG: "false"
+  DJANGO_ALLOWED_HOSTS: localhost,127.0.0.1
+  POSTGRES_DB: matthy
+  POSTGRES_USER: matthy
+  POSTGRES_PASSWORD: ci-only-password
+  POSTGRES_HOST: localhost
+  POSTGRES_PORT: "5432"
+  POSTGRES_TEST_DB: test_matthy
+  REDIS_URL: redis://localhost:6379/0
+  PYTHONDONTWRITEBYTECODE: "1"
+
+jobs:
+  # ── Gates 1 and 2 — formatting and linting ────────────────────────────────
+  lint:
+    name: "1-2. Format & lint"
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements/dev.txt
+      - name: ruff format --check
+        run: ruff format --check .
+      - name: ruff check
+        run: ruff check .
+
+  # ── Gate 3 — type checking ────────────────────────────────────────────────
+  types:
+    name: "3. Types"
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements/dev.txt
+      # Strict on ledger/, payments/, loans/, disbursements/ via the overrides
+      # in pyproject.toml. A `float` where an `int` was meant is the money bug
+      # this project most needs not to have, and mypy catches it at the
+      # boundary before it reaches the ledger (11 §6).
+      - run: mypy .
+
+  # ── Gate 4 — import contracts ─────────────────────────────────────────────
+  contracts:
+    name: "4. Import contracts"
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements/dev.txt
+      # 02 §5.4: the layer rules and the ledger inversion, asserted
+      # mechanically. A modular monolith degrades through imports, and the
+      # only durable defence is a test that fails.
+      - run: lint-imports
+
+  # ── Gate 5 — migrations ───────────────────────────────────────────────────
+  migrations:
+    name: "5. Migrations"
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements/dev.txt
+      - name: A model change with no migration fails the build
+        run: python manage.py makemigrations --check --dry-run
+
+  # ── Gates 6 and 7 — tests and coverage ────────────────────────────────────
+  tests:
+    name: "6-7. Tests & coverage"
+    runs-on: ubuntu-24.04
+
+    services:
+      # 13 §10, condition 6b: integration tests run against **real
+      # PostgreSQL**, never SQLite. The schema depends on CHECK constraints,
+      # deferred constraint triggers, GENERATED columns and JSONB. A SQLite run
+      # would pass while the production invariants never fired — a green build
+      # proving the opposite of what it claims.
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: matthy
+          POSTGRES_USER: matthy
+          POSTGRES_PASSWORD: ci-only-password
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U matthy -d matthy"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements/dev.txt
+
+      - name: Apply migrations to the test database
+        run: python manage.py migrate --noinput
+
+      # Suites 6a–6e of 13 §10. 6d (concurrency) runs on every PR rather than
+      # nightly: concurrency bugs are the class most likely to pass every other
+      # gate and then corrupt data in production, and a nightly run finds them
+      # a day after the merge that caused them.
+      - name: pytest
+        run: pytest --cov --cov-report=xml --cov-report=term-missing
+
+      # 13 §9 specifies FOUR floors, not one — 100% branch for ledger/, 95% for
+      # the other financial modules, 90% for accounts/ and groups/, 80% line
+      # elsewhere. coverage.py has a single global `fail_under`, and setting it
+      # to 80 satisfies none of them: it would let the ledger, where an
+      # uncovered branch is an unposted transaction, sit at 81%. The floors are
+      # enforced per scope by scripts/check_coverage.py.
+      - name: Coverage floors (13 §9)
+        run: |
+          coverage json -o coverage.json
+          python scripts/check_coverage.py
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage
+          path: coverage.xml
+          if-no-files-found: ignore
+
+  # ── Gate 8 — secret scan ──────────────────────────────────────────────────
+  secrets:
+    name: "8. Secret scan"
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # gitleaks scans history, not just the working tree
+      # SEC-SEC-001: no secret in source, ever. A secret that reached the
+      # repository is in the history permanently, so the scan covers history.
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # ── Gate 9 — dependency audit ─────────────────────────────────────────────
+  deps:
+    name: "9. Dependency audit"
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements/dev.txt
+      # S14: fails the build on high-severity findings.
+      - run: pip-audit --strict --vulnerability-service osv
+
+  # ── Gate 10 — OpenAPI schema ──────────────────────────────────────────────
+  openapi:
+    name: "10. OpenAPI schema"
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements/dev.txt
+      - name: Generate and validate
+        run: python manage.py spectacular --file /tmp/openapi.yaml --validate
+      - name: Diff against the committed contract
+        run: |
+          if [[ ! -f docs/openapi.yaml ]]; then
+            echo "docs/openapi.yaml does not exist yet; it is committed by the"
+            echo "slice that adds the first endpoint. Skipping the diff."
+            exit 0
+          fi
+          # 04 §15: an undocumented endpoint change fails, and a breaking
+          # change needs a version bump rather than a silent slip-through.
+          diff -u docs/openapi.yaml /tmp/openapi.yaml

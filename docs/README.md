@@ -25,8 +25,19 @@ are reviewed."*
 | — | Database ERD (§51) | 03 §13; physical `ERD.dbml` deferred to Phase 1 so it derives from migrations | 03 |
 | — | API Contract (§51) | 04 §7, versioned and diffed in CI (04 §15) | 04 |
 
-All fourteen documents are drafted. **Awaiting review** — §46 is explicit that no major
-coding begins until these are reviewed.
+All fourteen documents are drafted and **reviewed and accepted by the repository owner**
+(§46's gate). Implementation has begun: [PHASE_1_PLAN.md](PHASE_1_PLAN.md) records how the
+four gate conditions below were closed, the Phase 1 scope, and the slice order.
+
+## Phase 1 documents
+
+These are working documents, not part of the Phase 0 set. They are amended as
+implementation teaches something the design did not anticipate.
+
+| Document | Status |
+|---|---|
+| [Phase 1 Plan](PHASE_1_PLAN.md) | Active — slices S0–S5 (S1 split into S1a/S1b), decisions P1-1…P1-18, blocking items §6, **specification conflicts C1–C7 in §7** |
+| [Branch Protection](BRANCH_PROTECTION.md) | Active — the manual checklist for the half of 11 §6 that is not a file |
 
 ## Decisions resolved
 
@@ -82,10 +93,17 @@ The document set is complete. What it commits the project to, in one place:
 
 ### Before Phase 1 begins
 
-1. **Review these documents** (§46 — this is the gate, not a formality).
-2. Confirm the Phase 1 scope boundary stated in 01's out-of-scope list.
-3. Confirm the four open questions have working assumptions the user accepts for now.
+1. ~~**Review these documents** (§46 — this is the gate, not a formality).~~
+   **Closed** — reviewed and accepted by the repository owner.
+2. ~~Confirm the Phase 1 scope boundary stated in 01's out-of-scope list.~~
+   **Closed** — restated as an explicit exclusion list in
+   [PHASE_1_PLAN §2](PHASE_1_PLAN.md).
+3. ~~Confirm the four open questions have working assumptions the user accepts for now.~~
+   **Closed** — each carries a stated working assumption in the document that depends on
+   it, and none blocks Phase 1.
 4. Confirm the §45 legal review is engaged — it gates launch, not Phase 1, but its
    answers (Q1 custody, Q5 KYC, Q8 currency) reach back into the schema.
+   **Still open, and not a Phase 1 blocker.** Reaches back into the schema at Phase 3.
 
-Nothing here is committed to git yet.
+Phase 1 is under way. See [PHASE_1_PLAN.md](PHASE_1_PLAN.md) for what S0 delivered and
+what remains unverified.

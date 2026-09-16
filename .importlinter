@@ -1,0 +1,81 @@
+# Import contracts — CI gate 4 (11 §6)
+#
+# 02 §4.1: a module may import from its own layer or any layer below it, never
+# from a layer above. 02 §5.4: boundaries are enforced by a dependency
+# direction that fails a build, not by a code-review comment that may or may
+# not be read.
+#
+# ── Layer assignment (02 §4.1) ──────────────────────────────────────────────
+#   L4 Presentation  administration
+#   L3 Engagement    notifications | communications | reports
+#   L2 Financial     ledger | payments | loans | disbursements
+#   L1 Structure     groups | contributions | collectors
+#   L0 Foundation    accounts | locations | audit
+#
+# Only modules that exist are listed. import-linter reports a contract it
+# cannot resolve as a failure, not a skip, so naming `apps.groups` before the
+# slice that creates it fails gate 4 for a module nobody has written — and the
+# natural fix at that point is to delete the line, which is how a boundary
+# contract quietly shrinks. Each module is added here by its own slice:
+#
+#   S1 accounts   ← present now
+#   S2 audit      ← present now
+#   S3 locations
+#   S5 groups
+
+[importlinter]
+root_package = apps
+
+[importlinter:contract:layers]
+name = Module layers (02 §4.1)
+type = layers
+layers =
+    apps.accounts
+    apps.audit
+
+# Both modules are at L0, so this contract asserts exactly one thing: `audit`
+# must not import `accounts`. That is narrow but it is the real boundary, and it
+# is the one that would break first — `accounts` writes audit entries from its
+# first service, and the tempting shortcut when audit needs to describe a user is
+# to import the user model into audit and read it. That would put `accounts`
+# beneath `audit`, invert the direction every other module depends on, and turn
+# `audit` from the one module everything may import into one that imports the
+# module everything else needs.
+#
+# The contract becomes load-bearing across layers at S1b/S3, when `locations`
+# (L0) and `groups` (L1) arrive.
+#
+# Layer assignment being built toward (02 §4.1):
+#   L4 Presentation  administration
+#   L3 Engagement    notifications | communications | reports
+#   L2 Financial     ledger | payments | loans | disbursements
+#   L1 Structure     groups | contributions | collectors
+#   L0 Foundation    accounts | locations | audit
+#
+# `audit` is at L0 because everything must be able to write to it, but it is
+# write-mostly and append-only: no service exposes an update or delete path
+# (02 §4.3, FR-AUD-003). That rule is enforced by the database trigger added
+# in the audit module, not by this contract.
+#
+# ── Deferred to Phase 3 ─────────────────────────────────────────────────────
+# 02 §4.2 — the ledger inversion. `ledger` is at L2 but imports nothing above
+# L0, and payments/loans/disbursements import ledger while ledger never imports
+# them. The contract below is the exact text to uncomment when `apps.ledger`
+# exists; it is commented rather than active because a contract naming a module
+# that does not exist fails the gate it is meant to protect.
+#
+# [importlinter:contract:ledger_inversion]
+# name = The ledger inversion (02 §4.2)
+# type = forbidden
+# source_modules =
+#     apps.ledger
+# forbidden_modules =
+#     apps.payments
+#     apps.loans
+#     apps.disbursements
+#     apps.contributions
+#     apps.collectors
+#     apps.notifications
+#     apps.communications
+#     apps.reports
+#     apps.administration

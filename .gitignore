@@ -28,10 +28,11 @@ db.sqlite3-journal
 # Testing & coverage
 .coverage
 .coverage.*
+coverage.json
+coverage.xml
 htmlcov/
 .pytest_cache/
 .tox/
-coverage.xml
 *.cover
 
 # Type checking & linting

@@ -8,16 +8,26 @@ Celery · Docker
 
 ## Status
 
-**Phase 0 — Discovery: complete, awaiting review.** No production code yet,
-deliberately. Per the governing spec (§46, §51), the design documents are produced and
-reviewed before implementation starts, and §47 requires each module to be built
-incrementally rather than delivered as one large drop.
+**Phase 0 — Discovery: complete and accepted.** All fourteen design documents are
+drafted and reviewed; [`docs/`](docs/README.md) tracks their status, the decisions
+resolved, and the open questions still awaiting answers. Also settled: 102 required tests
+([13 §8](docs/13_TESTING_STRATEGY.md)), ten blocking CI gates
+([11 §6](docs/11_TEAM_WORKFLOW.md)), and the exact double-entry posting rules for every
+financial event ([06 §4.13](docs/06_FINANCIAL_RULES.md)).
 
-All fourteen Phase 0 documents are drafted — see [`docs/`](docs/README.md), which tracks
-their status, the decisions resolved, and the four open questions still awaiting answers.
-Also settled: 102 required tests ([13 §8](docs/13_TESTING_STRATEGY.md)), ten blocking CI
-gates ([11 §6](docs/11_TEAM_WORKFLOW.md)), and the exact double-entry posting rules for
-every financial event ([06 §4.13](docs/06_FINANCIAL_RULES.md)).
+**Phase 1 — Foundation: in progress.** The plan is
+[`docs/PHASE_1_PLAN.md`](docs/PHASE_1_PLAN.md), which closes the four §46 gate conditions
+and states the slice order (S0 scaffold → S1 `accounts` → S2 `audit` → S3 `locations` →
+S4 auth API → S5 `groups`).
+
+Phase 1 began with **slice S0** — repository skeleton, settings package, API conventions,
+health checks, Docker Compose, and the ten CI gates. S0 is written but **not yet
+verified**: no toolchain has run against it. Until `scripts/ci.sh` passes locally and in
+CI, treat every S0 file as unexecuted code. The blocking items are listed in
+[`docs/PHASE_1_PLAN.md` §6](docs/PHASE_1_PLAN.md).
+
+The product brand is **IHWEZA** — *Together We Move.* The repository, Python package and
+Django project name remain `matthy.app` / `config`.
 
 The project brief is a 41-page specification held outside this repository.
 

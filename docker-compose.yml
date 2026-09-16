@@ -1,0 +1,112 @@
+# Development stack — 12 §3.
+#
+# `docker compose up` brings up the full stack so that a developer's machine
+# has the same *topology* as production. An environment that differs locally is
+# one where "works on my machine" is a real category of bug, and the fix is to
+# remove the difference rather than to add a caveat.
+#
+# Machine-specific settings belong in `docker-compose.override.yml`, which is
+# git-ignored. This file is committed and shared.
+#
+# One deliberate difference from production: the `web` service runs Django's
+# development server rather than gunicorn, for autoreload. The *services* match
+# production exactly; only the process inside one of them differs, and the
+# staged and production environments use the image's own entrypoint
+# (docker/entrypoint.sh) instead.
+
+name: ihweza
+
+x-app: &app
+  build:
+    context: .
+    dockerfile: docker/Dockerfile
+    args:
+      REQUIREMENTS_FILE: requirements/dev.txt
+  image: ihweza/app:dev
+  env_file:
+    - .env
+  environment:
+    # Compose service names override the .env values, so the same .env works
+    # both inside and outside the stack.
+    POSTGRES_HOST: postgres
+    REDIS_URL: redis://redis:6379/0
+    EMAIL_HOST: mailhog
+  volumes:
+    - .:/app:cached          # bind-mounted for autoreload; not for production
+    - static:/app/staticfiles
+  depends_on:
+    postgres:
+      condition: service_healthy
+    redis:
+      condition: service_healthy
+  restart: unless-stopped
+
+services:
+  postgres:
+    # 16, matching production's major version. 12 §1: a staging or development
+    # environment on a different PostgreSQL major version is a different system
+    # that happens to run the same code.
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-matthy}
+      POSTGRES_USER: ${POSTGRES_USER:-matthy}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in .env}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:5432:5432"   # loopback only; never exposed on the network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-matthy} -d ${POSTGRES_DB:-matthy}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis-data:/data
+    ports:
+      - "127.0.0.1:6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  mailhog:
+    # Catches every outbound email in development. Nothing leaves the machine,
+    # which is what makes 13 §5 Y-DET-007 achievable rather than aspirational.
+    image: mailhog/mailhog:v1.0.1
+    ports:
+      - "127.0.0.1:8025:8025"   # web UI
+      - "127.0.0.1:1025:1025"   # SMTP
+    restart: unless-stopped
+
+  web:
+    <<: *app
+    command: ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+    ports:
+      - "8000:8000"
+
+  worker:
+    <<: *app
+    # 02 §5.5: no expensive background work runs inside a request/response
+    # cycle.
+    command: ["celery", "-A", "config", "worker", "--loglevel=INFO", "--concurrency=2"]
+    ports: []
+
+  beat:
+    <<: *app
+    # 12 §2: exactly one instance, ever. Two schedulers means every scheduled
+    # task fires twice. Do not add `deploy.replicas` to this service.
+    command: ["celery", "-A", "config", "beat", "--loglevel=INFO", "--schedule=/tmp/celerybeat-schedule"]
+    ports: []
+
+volumes:
+  postgres-data:
+  redis-data:
+  static:
