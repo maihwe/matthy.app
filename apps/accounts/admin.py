@@ -17,6 +17,16 @@ because ``UserAdmin`` is built around a stored ``is_active`` boolean and a
 username/password creation form. This model has neither: ``is_active`` is
 derived from ``account_status`` and the login identifier is ``phone``. Fighting
 ``UserAdmin`` into that shape produces a screen with fields that do not apply.
+
+Finally, the admin classes are **not** subscripted (``admin.ModelAdmin[User]``).
+Django's admin classes are generic in django-stubs but not at runtime —
+``ModelAdmin`` has no ``__class_getitem__`` — so the subscript raises
+``TypeError`` the moment ``admin.autodiscover()`` imports this module, which is
+every management command, in every environment including production. Making it
+work would mean running ``django_stubs_ext``, a type-checking shim, in
+production. Nothing here needs it: every ``list_display`` entry is a plain
+string and every ``has_*_permission`` is annotated explicitly, so the model
+binding the subscript would add is unused.
 """
 
 from __future__ import annotations
@@ -34,7 +44,7 @@ from apps.accounts.models import (
 )
 
 
-class UserProfileInline(admin.StackedInline[UserProfile]):
+class UserProfileInline(admin.StackedInline):
     """Stacked rather than tabular: it holds an address and next-of-kin, which
     do not read as a table row."""
 
@@ -45,7 +55,7 @@ class UserProfileInline(admin.StackedInline[UserProfile]):
 
 
 @admin.register(User)
-class UserAdmin(admin.ModelAdmin[User]):
+class UserAdmin(admin.ModelAdmin):
     list_display = (
         "public_id",
         "full_name",
@@ -138,7 +148,7 @@ class UserAdmin(admin.ModelAdmin[User]):
 
 
 @admin.register(Device)
-class DeviceAdmin(admin.ModelAdmin[Device]):
+class DeviceAdmin(admin.ModelAdmin):
     # 03 §4.3 gives `devices` no public_id — a device is only ever addressed
     # by its member, so there is no URL that needs an opaque identifier.
     list_display = ("id", "user", "platform", "model", "last_seen_at", "is_revoked")
@@ -157,7 +167,7 @@ class DeviceAdmin(admin.ModelAdmin[Device]):
 
 
 @admin.register(UserSession)
-class UserSessionAdmin(admin.ModelAdmin[UserSession]):
+class UserSessionAdmin(admin.ModelAdmin):
     list_display = ("public_id", "user", "issued_at", "expires_at", "revoked_at", "last_used_at")
     list_filter = ("revoked_at",)
     search_fields = ("public_id", "user__phone", "user__public_id")
@@ -180,8 +190,16 @@ class UserSessionAdmin(admin.ModelAdmin[UserSession]):
 
 
 @admin.register(OTPCode)
-class OTPCodeAdmin(admin.ModelAdmin[OTPCode]):
-    list_display = ("id", "purpose", "destination", "attempts", "max_attempts", "expires_at", "consumed_at")
+class OTPCodeAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "purpose",
+        "destination",
+        "attempts",
+        "max_attempts",
+        "expires_at",
+        "consumed_at",
+    )
     list_filter = ("purpose",)
     search_fields = ("destination",)
     readonly_fields = ("code_hash", "created_at")
@@ -200,7 +218,7 @@ class OTPCodeAdmin(admin.ModelAdmin[OTPCode]):
 
 
 @admin.register(VerificationToken)
-class VerificationTokenAdmin(admin.ModelAdmin[VerificationToken]):
+class VerificationTokenAdmin(admin.ModelAdmin):
     list_display = ("id", "user", "purpose", "expires_at", "consumed_at", "created_at")
     list_filter = ("purpose",)
     search_fields = ("user__phone", "user__public_id")

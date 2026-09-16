@@ -70,9 +70,7 @@ class TestIsActiveIsDerived:
             (AccountStatus.CLOSED, False),
         ],
     )
-    def test_is_active_follows_account_status(
-        self, status: AccountStatus, expected: bool
-    ) -> None:
+    def test_is_active_follows_account_status(self, status: AccountStatus, expected: bool) -> None:
         assert User(phone="+2348030000001", account_status=status).is_active is expected
 
     def test_a_suspended_user_cannot_authenticate(self) -> None:

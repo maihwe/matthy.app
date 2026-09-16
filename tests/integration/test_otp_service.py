@@ -39,7 +39,6 @@ from apps.accounts.services.otp import (
     CODE_LENGTH,
     DEFAULT_TTL,
     TTL_BY_PURPOSE,
-    IssuedOTP,
     issue,
     verify,
 )
@@ -91,9 +90,7 @@ class TestGeneration:
         assert len(issued.code) == CODE_LENGTH
         assert issued.code.isdigit()
 
-    def test_it_comes_from_secrets_and_not_random(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_it_comes_from_secrets_and_not_random(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """S1's premise, and the requirement's whole content.
 
         ``random`` is seeded from the clock and recoverable from a few outputs.
@@ -116,9 +113,7 @@ class TestGeneration:
         assert issued.code == "000042"
         assert calls == [10**CODE_LENGTH]
 
-    def test_a_high_roll_still_produces_six_digits(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_a_high_roll_still_produces_six_digits(self, monkeypatch: pytest.MonkeyPatch) -> None:
         class _StubSecrets:
             @staticmethod
             def randbelow(modulus: int) -> int:
@@ -185,9 +180,7 @@ class TestThePlaintextDoesNotLeak:
         # And the record's own repr, which is what a `Model.__str__` returns.
         assert issued.code not in str(issued.record)
 
-    def test_the_code_is_not_in_what_was_logged(
-        self, caplog: pytest.LogCaptureFixture
-    ) -> None:
+    def test_the_code_is_not_in_what_was_logged(self, caplog: pytest.LogCaptureFixture) -> None:
         """Every attribute of every record, not just the formatted message.
 
         ``logger.info(..., extra={...})`` puts values in the record's ``__dict__``
@@ -206,9 +199,7 @@ class TestThePlaintextDoesNotLeak:
             assert issued.code not in record.getMessage()
             assert issued.code not in str(record.__dict__)
 
-    def test_the_destination_is_not_logged_in_full(
-        self, caplog: pytest.LogCaptureFixture
-    ) -> None:
+    def test_the_destination_is_not_logged_in_full(self, caplog: pytest.LogCaptureFixture) -> None:
         """SEC-PII-002: PII in a log has no retention policy and no access control."""
         caplog.set_level(logging.INFO, logger="apps.accounts.services.otp")
         destination = _destination()
@@ -299,9 +290,7 @@ class TestIssuanceSupersedes:
 class TestIssuanceRateLimit:
     """SEC-OTP-004."""
 
-    def test_issuance_is_capped_per_destination(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_issuance_is_capped_per_destination(self, monkeypatch: pytest.MonkeyPatch) -> None:
         limits = _limits(django_settings.RATE_LIMITS, otp_issue={"limit": 2})
         monkeypatch.setattr(django_settings, "RATE_LIMITS", limits)
         destination = _destination()
@@ -315,9 +304,7 @@ class TestIssuanceRateLimit:
         assert refused.value.scope == "otp_issue"
         assert refused.value.retry_after > 0
 
-    def test_a_refused_issuance_writes_no_code(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_a_refused_issuance_writes_no_code(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """A refused request that still stored a code would be a code nobody sent.
 
         Worse than untidy: the table would show an issuance that did not happen,
@@ -359,9 +346,7 @@ class TestIssuanceRateLimit:
 
         assert refused.value.scope == "otp_issue_daily"
 
-    def test_the_window_is_keyed_on_the_destination(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_the_window_is_keyed_on_the_destination(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """One member exhausting a number must not throttle another's."""
         limits = _limits(django_settings.RATE_LIMITS, otp_issue={"limit": 1})
         monkeypatch.setattr(django_settings, "RATE_LIMITS", limits)
@@ -522,9 +507,7 @@ class TestTheAttemptCap:
 class TestVerificationRateLimit:
     """§6.4's ``otp_verify`` scope, which is per code rather than per member."""
 
-    def test_verification_is_capped_per_code(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_verification_is_capped_per_code(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """SEC-OTP-003's cap fires first in production, and this is the backstop.
 
         With ``max_attempts`` at 3 and a 15-minute window at 5, the row's own cap
@@ -545,9 +528,7 @@ class TestVerificationRateLimit:
 
         assert refused.value.scope == "otp_verify"
 
-    def test_the_counter_is_keyed_on_the_code(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_the_counter_is_keyed_on_the_code(self, monkeypatch: pytest.MonkeyPatch) -> None:
         limits = _limits(django_settings.RATE_LIMITS, otp_verify={"limit": 2})
         monkeypatch.setattr(django_settings, "RATE_LIMITS", limits)
         destination = _destination()

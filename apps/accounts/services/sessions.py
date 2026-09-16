@@ -237,9 +237,7 @@ def rotate(
                     "family_sessions_revoked": revoked,
                 },
             )
-            raise RefreshTokenReuse(
-                "A refresh token that had already been rotated was presented."
-            )
+            raise RefreshTokenReuse("A refresh token that had already been rotated was presented.")
 
         if session.expires_at <= now:
             session.revoked_at = now
@@ -283,9 +281,7 @@ def rotate(
             "user_public_id": str(session.user.public_id),
         },
     )
-    return IssuedSession(
-        refresh_token=token, session=successor, expires_at=successor.expires_at
-    )
+    return IssuedSession(refresh_token=token, session=successor, expires_at=successor.expires_at)
 
 
 def revoke(session: UserSession, *, now: datetime | None = None) -> bool:

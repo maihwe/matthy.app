@@ -298,7 +298,9 @@ class TestReuseDetection:
         phone_session.session.refresh_from_db()
         assert phone_session.session.revoked_at is None
 
-    def test_the_family_revocation_is_idempotent_under_repeated_attempts(self) -> None:
+    def test_the_family_revocation_is_idempotent_under_repeated_attempts(
+        self, caplog: pytest.LogCaptureFixture
+    ) -> None:
         """A thief who retries must not produce a different outcome each time.
 
         Both attempts are refused identically, and the second revokes nothing —
@@ -331,8 +333,9 @@ class TestReuseDetection:
         issued = issue(user=UserFactory())
         rotate(refresh_token=issued.refresh_token)
 
-        with pytest.raises(RefreshTokenReuse), caplog.at_level(
-            logging.WARNING, logger="apps.accounts.services.sessions"
+        with (
+            pytest.raises(RefreshTokenReuse),
+            caplog.at_level(logging.WARNING, logger="apps.accounts.services.sessions"),
         ):
             rotate(refresh_token=issued.refresh_token)
 
@@ -347,8 +350,9 @@ class TestReuseDetection:
         issued = issue(user=UserFactory())
         rotate(refresh_token=issued.refresh_token)
 
-        with pytest.raises(RefreshTokenReuse), caplog.at_level(
-            logging.WARNING, logger="apps.accounts.services.sessions"
+        with (
+            pytest.raises(RefreshTokenReuse),
+            caplog.at_level(logging.WARNING, logger="apps.accounts.services.sessions"),
         ):
             rotate(refresh_token=issued.refresh_token)
 

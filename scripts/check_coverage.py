@@ -139,7 +139,7 @@ def evaluate(files: dict[str, object], *, strict_no_match: bool) -> list[Result]
                 break
 
     results: list[Result] = []
-    for name, prefixes, floor, branch in SCOPES:
+    for name, _prefixes, floor, branch in SCOPES:
         pairs = buckets[name]
         if not pairs:
             results.append(Result(name, floor, False, 0, 0, branch))

@@ -130,9 +130,7 @@ class TestTheRealBackend:
         reset("pin_entry", who)
 
     @pytest.mark.slow
-    def test_the_window_actually_expires(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_the_window_actually_expires(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """A one-second window, waited out for real.
 
         Marked ``slow`` because it sleeps. It is worth the second: an expiring

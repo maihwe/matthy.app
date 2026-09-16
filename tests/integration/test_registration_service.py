@@ -345,9 +345,7 @@ class TestTheRaceBetweenTheLookupAndTheInsert:
 
 
 class TestWhenNoCodeCanBeSent:
-    def test_the_member_is_still_created(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_the_member_is_still_created(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Creation and delivery are separate steps, and the order is deliberate.
 
         An account that exists with no verification code is recoverable: the
@@ -369,9 +367,7 @@ class TestWhenNoCodeCanBeSent:
 
         assert User.objects.filter(phone=_e164(local)).exists()
 
-    def test_a_taken_number_is_refused_the_same_way(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_a_taken_number_is_refused_the_same_way(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """The rate-limited answer cannot be used to probe for accounts.
 
         SEC-OTP-004's windows are keyed on the *destination*, not on whether an

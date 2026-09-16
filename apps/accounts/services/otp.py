@@ -327,7 +327,11 @@ def verify(*, destination: str, purpose: str, code: str) -> OTPCode:
             record.save(update_fields=["consumed_at"])
             logger.info(
                 "otp.verified",
-                extra={"purpose": purpose, "destination": _masked(destination), "otp_id": record.pk},
+                extra={
+                    "purpose": purpose,
+                    "destination": _masked(destination),
+                    "otp_id": record.pk,
+                },
             )
             return record
 

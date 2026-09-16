@@ -110,11 +110,11 @@ class TestActionName:
     """The action column is the only handle on "who has done this before?"."""
 
     def test_rejects_prose(self) -> None:
-        with pytest.raises(ValueError, match="noun.verb_past"):
+        with pytest.raises(ValueError, match=r"noun\.verb_past"):
             record(**audit_values(action="User was suspended by an admin"))
 
     def test_rejects_a_single_segment(self) -> None:
-        with pytest.raises(ValueError, match="noun.verb_past"):
+        with pytest.raises(ValueError, match=r"noun\.verb_past"):
             record(**audit_values(action="suspended"))
 
     def test_rejects_uppercase(self) -> None:
@@ -123,15 +123,15 @@ class TestActionName:
         Storing both would split one history across two filters, and neither the
         admin filter nor the incident query would find the whole of it.
         """
-        with pytest.raises(ValueError, match="noun.verb_past"):
+        with pytest.raises(ValueError, match=r"noun\.verb_past"):
             record(**audit_values(action="USER.SUSPENDED"))
 
     def test_rejects_a_leading_underscore_segment(self) -> None:
-        with pytest.raises(ValueError, match="noun.verb_past"):
+        with pytest.raises(ValueError, match=r"noun\.verb_past"):
             record(**audit_values(action="user._suspended"))
 
     def test_rejects_a_trailing_dot(self) -> None:
-        with pytest.raises(ValueError, match="noun.verb_past"):
+        with pytest.raises(ValueError, match=r"noun\.verb_past"):
             record(**audit_values(action="user.suspended."))
 
     def test_accepts_a_three_segment_name(self) -> None:
@@ -220,9 +220,7 @@ class TestValuesMustBeStorable:
         assert entry.new_value == {"amount": "500.00", "currency": "NGN"}
 
     def test_accepts_nested_structures(self) -> None:
-        entry = record(
-            **audit_values(new_value={"roles": ["treasurer"], "limits": {"max": 50000}})
-        )
+        entry = record(**audit_values(new_value={"roles": ["treasurer"], "limits": {"max": 50000}}))
         assert entry.new_value == {"roles": ["treasurer"], "limits": {"max": 50000}}
 
 

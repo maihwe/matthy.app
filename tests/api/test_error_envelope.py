@@ -174,7 +174,9 @@ class TestProjectExceptions:
 
     def test_the_default_detail_is_used_when_none_is_given(self) -> None:
         _, body = handle(Conflict())
-        assert body["error"]["message"] == "The request conflicts with the resource's current state."
+        assert (
+            body["error"]["message"] == "The request conflicts with the resource's current state."
+        )
 
 
 class TestSeparationOfDuties:

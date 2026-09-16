@@ -84,9 +84,7 @@ def _unique_email() -> str:
 
 def _member(*, local: str | None = None, **overrides: Any) -> User:
     """An active member whose phone is unique unless the caller says otherwise."""
-    return UserFactory(
-        phone=_e164(local or _local_phone()), password=PASSWORD, **overrides
-    )
+    return UserFactory(phone=_e164(local or _local_phone()), password=PASSWORD, **overrides)
 
 
 def _lock_after(failures: int, *, base_seconds: int = WINDOW_SECONDS) -> dict[str, int]:
@@ -359,9 +357,7 @@ class TestTheLockout:
             with pytest.raises(InvalidCredentials):
                 _login(local, WRONG)
 
-        User.objects.filter(pk=user.pk).update(
-            locked_until=timezone.now() - timedelta(seconds=1)
-        )
+        User.objects.filter(pk=user.pk).update(locked_until=timezone.now() - timedelta(seconds=1))
 
         assert _login(local).pk == user.pk
         assert User.objects.get(pk=user.pk).failed_login_attempts == 0
@@ -416,9 +412,7 @@ class TestTheLockout:
 class TestTheRateLimit:
     """10 §6.4's login scope, keyed on IP+account."""
 
-    def test_the_attempt_over_the_ceiling_is_refused(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_the_attempt_over_the_ceiling_is_refused(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setattr(django_settings, "RATE_LIMITS", _login_limit(1))
         local = _local_phone()
         _member(local=local)
@@ -487,9 +481,7 @@ class TestTheRateLimit:
         with pytest.raises(RateLimited):
             _login(local, WRONG, source_ip="198.51.100.7")
 
-    def test_a_completed_sign_in_resets_the_window(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_a_completed_sign_in_resets_the_window(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """``ratelimit.reset``'s stated condition: a member who gets their
         password right should not stay throttled by their earlier mistakes.
 
@@ -577,9 +569,7 @@ class TestTheAccountStatus:
             user = _member()
             User.objects.filter(pk=user.pk).update(account_status=status)
 
-            assert User.objects.get(pk=user.pk).is_active is (
-                status == AccountStatus.ACTIVE
-            )
+            assert User.objects.get(pk=user.pk).is_active is (status == AccountStatus.ACTIVE)
 
             if status == AccountStatus.ACTIVE:
                 assert _login(user.phone).pk == user.pk
@@ -616,9 +606,7 @@ class TestTheLogLines:
     file.
     """
 
-    def test_a_completed_sign_in_is_recorded(
-        self, caplog: pytest.LogCaptureFixture
-    ) -> None:
+    def test_a_completed_sign_in_is_recorded(self, caplog: pytest.LogCaptureFixture) -> None:
         caplog.set_level(logging.INFO)
         local = _local_phone()
         user = _member(local=local)

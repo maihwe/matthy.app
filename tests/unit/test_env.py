@@ -61,17 +61,13 @@ class TestEnv:
         monkeypatch.delenv("SOME_OPTIONAL_THING", raising=False)
         assert env("SOME_OPTIONAL_THING", default="fallback") == "fallback"
 
-    def test_absent_without_a_default_returns_none(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_absent_without_a_default_returns_none(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """``env`` is the optional reader; ``None`` is a real answer, not an
         error. Only ``require_env`` fails."""
         monkeypatch.delenv("SOME_OPTIONAL_THING", raising=False)
         assert env("SOME_OPTIONAL_THING") is None
 
-    def test_empty_string_falls_back_to_the_default(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_empty_string_falls_back_to_the_default(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Consistent with ``require_env``: empty means unset, everywhere."""
         monkeypatch.setenv("SOME_OPTIONAL_THING", "")
         assert env("SOME_OPTIONAL_THING", default="fallback") == "fallback"
@@ -153,9 +149,7 @@ class TestEnvList:
         monkeypatch.setenv("SOME_LIST", "a,b,c")
         assert env_list("SOME_LIST") == ["a", "b", "c"]
 
-    def test_strips_whitespace_and_discards_blanks(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_strips_whitespace_and_discards_blanks(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """A trailing comma is the most common way to write a list.
 
         Without discarding blanks it produces an empty ALLOWED_HOSTS entry,

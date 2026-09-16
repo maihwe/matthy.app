@@ -249,9 +249,7 @@ class TestS5NoWildcardSerializerFields:
 
     def test_no_serializer_uses_fields_all(self) -> None:
         violations = _scan(find_all_fields_serializers, _python_sources())
-        assert not violations, "fields = '__all__' found:\n" + "\n".join(
-            str(v) for v in violations
-        )
+        assert not violations, "fields = '__all__' found:\n" + "\n".join(str(v) for v in violations)
 
 
 class TestS6EveryViewDeclaresPermissions:
@@ -274,18 +272,30 @@ class TestTheRatchetsCanActuallyFail:
     """
 
     def test_s5_detector_catches_fields_all(self) -> None:
-        source = "from rest_framework import serializers\n\n\nclass UserSerializer(serializers.ModelSerializer):\n    class Meta:\n        model = User\n        fields = '__all__'\n"
+        source = (
+            "from rest_framework import serializers\n\n\n"
+            "class UserSerializer(serializers.ModelSerializer):\n"
+            "    class Meta:\n"
+            "        model = User\n"
+            "        fields = '__all__'\n"
+        )
         found = find_all_fields_serializers(ast.parse(source), Path("planted.py"))
         assert len(found) == 1
         assert "UserSerializer" in found[0].message
         assert found[0].line == 7
 
     def test_s5_detector_allows_an_explicit_field_list(self) -> None:
-        source = "class UserSerializer(serializers.ModelSerializer):\n    class Meta:\n        fields = ['id', 'email']\n"
+        source = (
+            "class UserSerializer(serializers.ModelSerializer):\n"
+            "    class Meta:\n"
+            "        fields = ['id', 'email']\n"
+        )
         assert find_all_fields_serializers(ast.parse(source), Path("planted.py")) == []
 
     def test_s6_detector_catches_a_bare_api_view(self) -> None:
-        source = "class GroupsView(APIView):\n    def get(self, request):\n        return Response({})\n"
+        source = (
+            "class GroupsView(APIView):\n    def get(self, request):\n        return Response({})\n"
+        )
         found = find_undeclared_permission_views(ast.parse(source), Path("planted.py"))
         assert len(found) == 1
         assert "GroupsView" in found[0].message
@@ -296,7 +306,11 @@ class TestTheRatchetsCanActuallyFail:
 
     def test_s6_detector_allows_a_get_permissions_override(self) -> None:
         """Object-dependent permission cannot be a class attribute."""
-        source = "class GroupDetailView(APIView):\n    def get_permissions(self):\n        return [IsGroupMember()]\n"
+        source = (
+            "class GroupDetailView(APIView):\n"
+            "    def get_permissions(self):\n"
+            "        return [IsGroupMember()]\n"
+        )
         assert find_undeclared_permission_views(ast.parse(source), Path("planted.py")) == []
 
     def test_s6_detector_ignores_non_views(self) -> None:
@@ -322,6 +336,11 @@ class TestTheRatchetsCanActuallyFail:
 
     def test_s6_detector_does_not_accept_a_local_assignment(self) -> None:
         """A ``permission_classes`` assigned inside a method is not a declaration."""
-        source = "class GroupView(APIView):\n    def get(self, request):\n        permission_classes = []\n        return Response({})\n"
+        source = (
+            "class GroupView(APIView):\n"
+            "    def get(self, request):\n"
+            "        permission_classes = []\n"
+            "        return Response({})\n"
+        )
         found = find_undeclared_permission_views(ast.parse(source), Path("planted.py"))
         assert len(found) == 1

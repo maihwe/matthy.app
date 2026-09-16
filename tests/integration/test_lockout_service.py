@@ -58,9 +58,7 @@ def _expire(user: User, *, seconds: int = 1) -> None:
     Written as an ``UPDATE`` rather than by waiting: a suite that sleeps out its
     own lockouts is a suite that gets skipped.
     """
-    User.objects.filter(pk=user.pk).update(
-        locked_until=timezone.now() - timedelta(seconds=seconds)
-    )
+    User.objects.filter(pk=user.pk).update(locked_until=timezone.now() - timedelta(seconds=seconds))
     user.refresh_from_db()
 
 
@@ -131,9 +129,7 @@ class TestTheCounter:
 class TestEscalation:
     """SEC-LOCK-001's "backoff period that escalates with repetition"."""
 
-    def test_the_first_lockout_is_the_base_window(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_the_first_lockout_is_the_base_window(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setattr(django_settings, "LOCKOUT", SMALL_SCHEDULE)
         user = UserFactory()
         _fail(user, SMALL_SCHEDULE["threshold"] - 1)
@@ -156,9 +152,7 @@ class TestEscalation:
 
         assert result.locked_until == now + timedelta(seconds=2 * SMALL_SCHEDULE["base_seconds"])
 
-    def test_the_window_stops_growing_at_the_cap(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_the_window_stops_growing_at_the_cap(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """The escalation is bounded, and that bound is the point (P1-20).
 
         Each pass expires the previous window and fails once more, so this walks
@@ -290,9 +284,7 @@ class TestClearing:
         assert state(user).locked is False
         assert User.objects.get(pk=user.pk).locked_until is None
 
-    def test_a_successful_login_costs_no_write(
-        self, django_assert_num_queries: Any
-    ) -> None:
+    def test_a_successful_login_costs_no_write(self, django_assert_num_queries: Any) -> None:
         """The ordinary case: the first attempt is the right password.
 
         Clearing unconditionally would put an ``UPDATE users`` on every
@@ -359,7 +351,9 @@ class TestLogging:
 
         assert not _records(caplog, "account.locked")
 
-    def test_the_log_does_not_carry_the_phone_number(self, caplog: pytest.LogCaptureFixture) -> None:
+    def test_the_log_does_not_carry_the_phone_number(
+        self, caplog: pytest.LogCaptureFixture
+    ) -> None:
         """S1 and 10 §5.2: a log line is a place with no access control.
 
         The record identifies the account by ``public_id`` — which is what an
@@ -393,9 +387,7 @@ class TestNothingIsDecidedForTheCaller:
 
         assert exported
         assert not [
-            obj
-            for obj in exported
-            if isinstance(obj, type) and issubclass(obj, BaseException)
+            obj for obj in exported if isinstance(obj, type) and issubclass(obj, BaseException)
         ]
 
     def test_a_locked_account_is_refused_without_an_error(

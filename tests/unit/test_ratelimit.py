@@ -83,9 +83,7 @@ class TestConfiguration:
         assert "no_such_scope" in str(refused.value)
         assert "login" in str(refused.value)
 
-    def test_the_missing_setting_names_10_6_4(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_the_missing_setting_names_10_6_4(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.delattr(django_settings, "RATE_LIMITS")
 
         with pytest.raises(ImproperlyConfigured) as refused:
@@ -221,9 +219,7 @@ class TestCounting:
     """The window, counted. Identifiers are random per test so nothing leaks
     between runs through Redis or through a shared LocMemCache instance."""
 
-    def test_a_scope_allows_exactly_its_limit(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_a_scope_allows_exactly_its_limit(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setattr(django_settings, "RATE_LIMITS", _limited(3))
         who = uuid4().hex
 
@@ -233,9 +229,7 @@ class TestCounting:
         assert [d.remaining for d in seen] == [2, 1, 0, 0]
         assert all(d.limit == 3 for d in seen)
 
-    def test_the_refusal_says_how_long_to_wait(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_the_refusal_says_how_long_to_wait(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """04 §1 puts this in the ``Retry-After`` header, so it must be usable.
 
         Bounded rather than exact: with a real Redis the value is the remaining
@@ -250,9 +244,7 @@ class TestCounting:
         assert refused.allowed is False
         assert 0 < refused.retry_after <= 900
 
-    def test_an_allowed_decision_asks_for_no_wait(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_an_allowed_decision_asks_for_no_wait(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setattr(django_settings, "RATE_LIMITS", _limited(3))
 
         assert consume("probe", uuid4().hex).retry_after == 0
@@ -268,9 +260,7 @@ class TestCounting:
         # One member exhausting their allowance must not spend anyone else's.
         assert consume("probe", two).allowed is True
 
-    def test_the_counters_are_separate_per_scope(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_the_counters_are_separate_per_scope(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """A scope is not a per-user budget shared across actions.
 
         Deliberate: five wrong PINs should not consume the OTP allowance, or an
@@ -307,9 +297,7 @@ class TestCounting:
         # its own ceiling — which is the point: it is a different bound.
         assert consume("otp_issue_daily", who).allowed is True
 
-    def test_reset_restores_the_allowance(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_reset_restores_the_allowance(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """A member who gets it right is not throttled by their earlier misses."""
         monkeypatch.setattr(django_settings, "RATE_LIMITS", _limited(1))
         who = uuid4().hex
@@ -320,9 +308,7 @@ class TestCounting:
 
         assert consume("probe", who).allowed is True
 
-    def test_reset_leaves_other_identifiers_alone(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_reset_leaves_other_identifiers_alone(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setattr(django_settings, "RATE_LIMITS", _limited(1))
         one, two = uuid4().hex, uuid4().hex
         consume("probe", one)
@@ -375,9 +361,7 @@ class TestWhenTheCacheIsUnavailable:
     """10 §6.4's limiter is a control; a control that silently stops controlling
     is worse than one that stops the request. See P1-16."""
 
-    def test_the_default_is_to_refuse(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_the_default_is_to_refuse(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setattr(django_settings, "RATE_LIMITS", _limited(3))
         monkeypatch.setattr(ratelimit, "cache", _BrokenCache())
 
@@ -411,14 +395,18 @@ class TestWhenTheCacheIsUnavailable:
         for scope in ("financial_write", "anonymous_read"):
             assert consume(scope, uuid4().hex).allowed is True
 
-        for scope in ("login", "otp_issue", "otp_verify", "pin_entry",
-                      "password_reset", "bulk_send"):
+        for scope in (
+            "login",
+            "otp_issue",
+            "otp_verify",
+            "pin_entry",
+            "password_reset",
+            "bulk_send",
+        ):
             with pytest.raises(RateLimiterUnavailable):
                 consume(scope, uuid4().hex)
 
-    def test_it_is_not_confused_with_a_plain_refusal(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_it_is_not_confused_with_a_plain_refusal(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """The two must be distinguishable to a caller and to an operator.
 
         A refusal is a client that hit its ceiling and gets a 429 with a

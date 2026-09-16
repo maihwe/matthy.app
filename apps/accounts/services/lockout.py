@@ -136,8 +136,7 @@ def _configured() -> tuple[int, int, int]:
         # a YAML/JSON typo that turns the second wrong password into a lockout.
         if isinstance(value, bool) or not isinstance(value, int) or value < 1:
             raise ImproperlyConfigured(
-                f"settings.{_SETTING}[{key!r}] must be a positive integer, "
-                f"got {value!r}."
+                f"settings.{_SETTING}[{key!r}] must be a positive integer, got {value!r}."
             )
         values[key] = value
 

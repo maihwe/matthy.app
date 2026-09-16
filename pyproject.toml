@@ -52,6 +52,7 @@ ignore = [
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["S105", "S106"]        # noqa: allow dummy credentials in factories
 "config/settings/**" = ["S105"]      # setting names read as hard-coded secrets to bandit
+"scripts/**" = ["T201"]              # these are command-line tools; stdout is the interface
 
 [tool.ruff.lint.flake8-tidy-imports.banned-api]
 # SEC-INJ-004 — no pickle, no unsafe YAML loading. Note that `eval` and `exec`

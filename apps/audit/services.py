@@ -240,9 +240,7 @@ def record(
         previous_value=_checked_values(previous_value, field="previous_value"),
         new_value=_checked_values(new_value, field="new_value"),
         ip_address=context.ip_address if context else None,
-        user_agent=_truncated(
-            context.user_agent if context else None, limit=USER_AGENT_MAX_LENGTH
-        ),
+        user_agent=_truncated(context.user_agent if context else None, limit=USER_AGENT_MAX_LENGTH),
         device_id=context.device_id if context else None,
         session_id=context.session_id if context else None,
     )

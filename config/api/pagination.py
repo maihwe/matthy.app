@@ -109,7 +109,9 @@ class CursorPagination(DRFCursorPagination):
         return parameters
 
 
-def data_response(data: Any, *, status: int = 200, headers: dict[str, str] | None = None) -> Response:
+def data_response(
+    data: Any, *, status: int = 200, headers: dict[str, str] | None = None
+) -> Response:
     """A single-resource response in the envelope of 04 §1.7.
 
     Deliberately a function rather than a mixin or a custom renderer. A mixin

@@ -168,9 +168,7 @@ class TestTheCounterIsNotLost:
         assert stored.failed_login_attempts == 2
         assert lockout.state(stored).locked is True
 
-    def test_a_wider_burst_counts_every_failure(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_a_wider_burst_counts_every_failure(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Five threads, threshold 5 — the same property at the size SEC-LOCK-001 names.
 
         Worth having beside the two-thread case because a partial fix passes that

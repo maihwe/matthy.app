@@ -8,9 +8,8 @@ that will deploy without one.
 
 from __future__ import annotations
 
-from config.env import env_int
+from config.env import env, env_int, env_list
 from config.settings.base import *  # noqa: F403
-from config.settings.base import env, env_list
 
 DEBUG = True
 

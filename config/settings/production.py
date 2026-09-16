@@ -16,7 +16,7 @@ from __future__ import annotations
 
 from django.core.exceptions import ImproperlyConfigured
 
-from config.env import env_int, env_list
+from config.env import env, env_int, env_list
 from config.settings.base import *  # noqa: F403
 from config.settings.base import DEBUG as _BASE_DEBUG
 

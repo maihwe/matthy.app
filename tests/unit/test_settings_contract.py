@@ -163,7 +163,8 @@ class TestAPIHardening:
         """
         base = _settings_module("config.settings.base")
         assert (
-            base.REST_FRAMEWORK["DEFAULT_PAGINATION_CLASS"] == "config.api.pagination.CursorPagination"
+            base.REST_FRAMEWORK["DEFAULT_PAGINATION_CLASS"]
+            == "config.api.pagination.CursorPagination"
         )
 
     def test_money_is_never_parsed_by_a_browser_form_parser(self) -> None:
@@ -173,7 +174,9 @@ class TestAPIHardening:
         number is an IEEE-754 double the moment any client touches it.
         """
         base = _settings_module("config.settings.base")
-        assert base.REST_FRAMEWORK["DEFAULT_PARSER_CLASSES"] == ["rest_framework.parsers.JSONParser"]
+        assert base.REST_FRAMEWORK["DEFAULT_PARSER_CLASSES"] == [
+            "rest_framework.parsers.JSONParser"
+        ]
 
     def test_a_session_cannot_be_authenticated_anonymously(self) -> None:
         """``UNAUTHENTICATED_USER: None`` is *not* set.

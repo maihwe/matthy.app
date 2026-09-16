@@ -12,7 +12,7 @@ import pytest
 from django.http import HttpRequest, HttpResponse
 from django.test import RequestFactory
 
-from config.logging import get_correlation_id, new_correlation_id
+from config.logging import get_correlation_id, new_correlation_id, set_correlation_id
 from config.middleware import CorrelationIdMiddleware
 
 pytestmark = pytest.mark.unit
@@ -86,7 +86,7 @@ class TestInboundIdIsRejected:
     def test_a_malformed_id_is_replaced(
         self, factory: RequestFactory, label: str, inbound: str
     ) -> None:
-        response, request = _run(factory, inbound)
+        response, _request = _run(factory, inbound)
         issued = response[HEADER]
         assert issued != inbound, f"{label} should not have been trusted"
         assert issued.startswith("req_")

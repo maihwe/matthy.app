@@ -34,8 +34,8 @@ from apps.accounts.models import (
 
 # A visibly fake constant, never a realistic-looking one: a reviewer scanning a
 # diff must not have to check whether this is a leaked credential.
-FACTORY_PASSWORD = "factory-password-not-a-secret"  # noqa: S105
-FACTORY_PIN = "4821"  # noqa: S105
+FACTORY_PASSWORD = "factory-password-not-a-secret"
+FACTORY_PIN = "4821"
 
 
 class UserFactory(DjangoModelFactory[User]):
@@ -66,7 +66,7 @@ class UserFactory(DjangoModelFactory[User]):
     def _create(cls, model_class: type[User], *args: Any, **kwargs: Any) -> User:
         """Create through the manager, so the password is really hashed."""
         password = kwargs.pop("password", FACTORY_PASSWORD)
-        return model_class.objects.create_user(password=password, *args, **kwargs)
+        return model_class.objects.create_user(*args, password=password, **kwargs)
 
 
 class SuspendedUserFactory(UserFactory):

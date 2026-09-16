@@ -81,9 +81,7 @@ class UserManager(BaseUserManager["User"]):
 
     use_in_migrations = True
 
-    def create_user(
-        self, phone: str, password: str | None = None, **extra_fields: Any
-    ) -> User:
+    def create_user(self, phone: str, password: str | None = None, **extra_fields: Any) -> User:
         if not phone:
             raise ValueError("A phone number is required; it is the login identifier.")
         if not password:
@@ -355,9 +353,7 @@ class UserProfile(models.Model):
     address_line = models.CharField(max_length=255, blank=True, default="")
 
     date_of_birth = models.DateField(null=True, blank=True, default=None)
-    gender = models.CharField(
-        max_length=24, choices=Gender.choices, blank=True, default=""
-    )
+    gender = models.CharField(max_length=24, choices=Gender.choices, blank=True, default="")
     occupation = models.CharField(max_length=100, blank=True, default="")
 
     next_of_kin_name = models.CharField(max_length=255, blank=True, default="")
@@ -601,9 +597,7 @@ class VerificationToken(models.Model):
     mail client, a code lives for minutes and may be retyped.
     """
 
-    user = models.ForeignKey(
-        User, on_delete=models.CASCADE, related_name="verification_tokens"
-    )
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="verification_tokens")
     purpose = models.CharField(max_length=24, choices=TokenPurpose.choices)
 
     token_hash = models.CharField(max_length=HASH_MAX_LENGTH)

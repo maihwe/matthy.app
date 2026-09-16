@@ -15,6 +15,11 @@ whoever last held the mouse.
 ``list_display``: it can hold a member's name, and a list view is a page that
 gets screenshotted into a support ticket. The list columns are the identifiers
 an operator is actually searching on.
+
+The admin class is **not** subscripted (``admin.ModelAdmin[AuditLog]``) for the
+reason given in ``apps.accounts.admin``: Django's admin classes are generic in
+django-stubs but not at runtime, so the subscript is a ``TypeError`` at import,
+in every environment.
 """
 
 from __future__ import annotations
@@ -26,7 +31,7 @@ from apps.audit.models import AuditLog
 
 
 @admin.register(AuditLog)
-class AuditLogAdmin(admin.ModelAdmin[AuditLog]):
+class AuditLogAdmin(admin.ModelAdmin):
     list_display = (
         "occurred_at",
         "actor_type",

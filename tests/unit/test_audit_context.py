@@ -12,6 +12,7 @@ No database: ``AuditContext`` is a dataclass and ``client_ip`` reads a dict.
 from __future__ import annotations
 
 from dataclasses import FrozenInstanceError
+from typing import ClassVar
 
 import pytest
 from django.test import RequestFactory
@@ -54,7 +55,7 @@ class TestClientIp:
         """An empty string in the column would look like a recorded value."""
 
         class _Bare:
-            META: dict[str, str] = {}
+            META: ClassVar[dict[str, str]] = {}
 
         assert client_ip(_Bare()) is None  # type: ignore[arg-type]
 

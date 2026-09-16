@@ -103,9 +103,7 @@ class TestTheSchedule:
 class TestConfiguration:
     """A schedule that is absent or misspelled must fail loudly, not default open."""
 
-    def test_a_missing_setting_names_the_requirement(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_a_missing_setting_names_the_requirement(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.delattr(django_settings, "LOCKOUT")
 
         with pytest.raises(ImproperlyConfigured) as refused:
@@ -115,9 +113,7 @@ class TestConfiguration:
         # not being enforced, rather than only that a key is missing.
         assert "SEC-LOCK-001" in str(refused.value)
 
-    def test_a_setting_that_is_not_a_mapping_raises(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_a_setting_that_is_not_a_mapping_raises(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setattr(django_settings, "LOCKOUT", [("threshold", 5)])
 
         with pytest.raises(ImproperlyConfigured) as refused:
@@ -153,9 +149,7 @@ class TestConfiguration:
         with pytest.raises(ImproperlyConfigured):
             backoff(5)
 
-    def test_a_ceiling_below_the_base_window_raises(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_a_ceiling_below_the_base_window_raises(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """The ceiling would cut the first lockout short — not a schedule
         anybody chose, and almost certainly a units mistake (seconds for
         minutes) rather than an intention."""
@@ -170,9 +164,7 @@ class TestConfiguration:
 
         assert "max_seconds" in str(refused.value)
 
-    def test_a_flat_schedule_is_permitted(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_a_flat_schedule_is_permitted(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """``max_seconds == base_seconds`` is legal: no escalation, one window.
 
         Permitted on purpose. It is what an incident response reaches for when
@@ -233,9 +225,7 @@ class TestLockState:
         it. A stale deadline reaching a ``Retry-After`` would tell a member to
         wait for a lockout that is already over."""
         now = timezone.now()
-        stale = LockState(
-            locked=True, failed_attempts=5, locked_until=now - timedelta(seconds=1)
-        )
+        stale = LockState(locked=True, failed_attempts=5, locked_until=now - timedelta(seconds=1))
 
         assert stale.remaining(now) == timedelta(0)
 
