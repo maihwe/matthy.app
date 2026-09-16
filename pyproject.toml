@@ -96,6 +96,20 @@ module = [
 strict = true
 
 [[tool.mypy.overrides]]
+# Django's admin classes are generic in django-stubs (`ModelAdmin[_ModelT]`), so
+# the default here would require `admin.ModelAdmin[User]`. That subscript is a
+# `TypeError` at runtime: `ModelAdmin` has no `__class_getitem__`, and
+# `admin.autodiscover()` imports every `apps/*/admin.py` during `apps.populate()`
+# — so the subscript breaks *every* management command, in every environment
+# including production. Restoring it would mean shipping `django_stubs_ext`, a
+# type-checking shim, to production, to check a binding neither file uses: every
+# `list_display` entry is a plain string and every `has_*_permission` is
+# annotated explicitly. The classes stay unsubscripted and the checker is told to
+# accept it, for these two modules only.
+module = ["apps.accounts.admin", "apps.audit.admin"]
+disallow_any_generics = false
+
+[[tool.mypy.overrides]]
 module = ["apps.*.migrations.*"]
 ignore_errors = true
 

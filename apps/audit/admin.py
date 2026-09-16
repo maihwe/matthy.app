@@ -19,7 +19,8 @@ an operator is actually searching on.
 The admin class is **not** subscripted (``admin.ModelAdmin[AuditLog]``) for the
 reason given in ``apps.accounts.admin``: Django's admin classes are generic in
 django-stubs but not at runtime, so the subscript is a ``TypeError`` at import,
-in every environment.
+in every environment. ``pyproject.toml`` exempts this module from
+``disallow_any_generics`` to match.
 """
 
 from __future__ import annotations

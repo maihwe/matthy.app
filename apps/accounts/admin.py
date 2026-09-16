@@ -18,12 +18,13 @@ username/password creation form. This model has neither: ``is_active`` is
 derived from ``account_status`` and the login identifier is ``phone``. Fighting
 ``UserAdmin`` into that shape produces a screen with fields that do not apply.
 
-Finally, the admin classes are **not** subscripted (``admin.ModelAdmin[User]``).
-Django's admin classes are generic in django-stubs but not at runtime —
+Finally, the admin classes are **not** subscripted (``admin.ModelAdmin[User]``),
+and ``pyproject.toml`` exempts this module from ``disallow_any_generics`` to
+match. Django's admin classes are generic in django-stubs but not at runtime —
 ``ModelAdmin`` has no ``__class_getitem__`` — so the subscript raises
 ``TypeError`` the moment ``admin.autodiscover()`` imports this module, which is
 every management command, in every environment including production. Making it
-work would mean running ``django_stubs_ext``, a type-checking shim, in
+work would mean shipping ``django_stubs_ext``, a type-checking shim, to
 production. Nothing here needs it: every ``list_display`` entry is a plain
 string and every ``has_*_permission`` is annotated explicitly, so the model
 binding the subscript would add is unused.
