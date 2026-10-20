@@ -148,8 +148,13 @@ jobs:
           cache: pip
       - run: pip install -r requirements/dev.txt
 
-      - name: Apply migrations to the test database
-        run: python manage.py migrate --noinput
+      # No explicit `migrate` step here. Under `config.settings.test` the
+      # database NAME is `POSTGRES_TEST_DB` (`test_matthy`), so `manage.py
+      # migrate` connects to a database that the service container never
+      # creates — and it would not be the database pytest uses anyway:
+      # pytest-django creates its own test database and applies migrations to
+      # it as part of `django_db_setup`. A migration error therefore still
+      # fails this job, reported by pytest rather than by a step racing it.
 
       # Suites 6a–6e of 13 §10. 6d (concurrency) runs on every PR rather than
       # nightly: concurrency bugs are the class most likely to pass every other
