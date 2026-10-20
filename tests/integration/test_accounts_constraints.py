@@ -43,7 +43,7 @@ class TestUserManager:
     def test_create_user_hashes_the_password(self) -> None:
         """SEC-AUTH-001 — the stored value is never the password."""
         user = User.objects.create_user(phone="+2348031000001", password="correct horse battery")
-        assert user.password != "correct horse battery"
+        assert user.password != "correct horse battery"  # pragma: allowlist secret
         assert user.check_password("correct horse battery") is True
 
     def test_create_user_rejects_a_missing_phone(self) -> None:

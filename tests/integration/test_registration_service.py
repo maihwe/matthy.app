@@ -34,8 +34,8 @@ from tests.factories import SuspendedUserFactory, UnverifiedUserFactory, UserFac
 
 pytestmark = [pytest.mark.integration, pytest.mark.django_db, pytest.mark.security]
 
-STRONG_PASSWORD = "xK7#mQp2!vLz9Rt"
-SECOND_PASSWORD = "bQ4$nW8*eR2!yT6u"
+STRONG_PASSWORD = "xK7#mQp2!vLz9Rt"  # pragma: allowlist secret
+SECOND_PASSWORD = "bQ4$nW8*eR2!yT6u"  # pragma: allowlist secret
 """Both are visibly-synthetic constants, not realistic-looking ones, so a
 reviewer scanning a diff cannot mistake either for a leaked credential
 (SEC-SEC-001). Neither is similar to the fixture's name, so the similarity
@@ -187,7 +187,7 @@ class TestRefusalsWriteNothing:
         their profile and a verification code are all absent afterwards, because
         none of them was ever written."""
         with pytest.raises(WeakPassword):
-            _register(_local_phone(), password="password")
+            _register(_local_phone(), password="password")  # pragma: allowlist secret
 
         assert User.objects.count() == 0
         assert UserProfile.objects.count() == 0
@@ -211,7 +211,7 @@ class TestRefusalsWriteNothing:
         _register(local)
 
         with pytest.raises(WeakPassword):
-            _register(local, password="password")
+            _register(local, password="password")  # pragma: allowlist secret
 
 
 class TestANumberThatIsAlreadyRegistered:
@@ -333,11 +333,14 @@ class TestTheRaceBetweenTheLookupAndTheInsert:
         """
         local = _local_phone()
         existing = UnverifiedUserFactory(phone=_e164(local))
-        monkeypatch.setattr(
-            registration.User.objects, "filter", lambda **kwargs: User.objects.none()
-        )
-
-        result = _register(local)
+        # Scoped: `registration.User.objects` *is* the shared manager, so a
+        # patch left installed would also make the assertions below query
+        # nothing and pass, or fail, for the wrong reason.
+        with monkeypatch.context() as patched:
+            patched.setattr(
+                registration.User.objects, "filter", lambda **kwargs: User.objects.none()
+            )
+            result = _register(local)
 
         assert result.already_registered is True
         assert result.user.pk == existing.pk

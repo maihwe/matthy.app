@@ -24,7 +24,7 @@ _MAX_INBOUND_LENGTH: Final = 128
 # produced. That is a log-poisoning attack, and for this project it is worse
 # than a cosmetic problem — the correlation ID is what an operator uses to
 # find a disputed financial operation in the audit trail (12 §7.1).
-_PATTERN: Final = re.compile(rf"\A[A-Za-z0-9._:-]{{1,{_MAX_INBOUND_LENGTH}}}\Z")
+_PATTERN: Final = re.compile(rf"\A[A-Za-z0-9][A-Za-z0-9._:-]{{0,{_MAX_INBOUND_LENGTH - 1}}}\Z")
 
 
 class CorrelationIdMiddleware:

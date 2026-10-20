@@ -14,7 +14,9 @@ relying on an encoding this module is free to change.
 from __future__ import annotations
 
 from typing import Any
+from urllib.parse import parse_qs, urlparse
 
+from django.core.exceptions import ImproperlyConfigured
 from rest_framework.pagination import CursorPagination as DRFCursorPagination
 from rest_framework.response import Response
 
@@ -45,6 +47,50 @@ class CursorPagination(DRFCursorPagination):
     page_size_query_param = "limit"
     max_page_size = MAX_PAGE_SIZE
 
+    # DRF's default is ``"-created"``, a column almost no model here has. The
+    # ordering is read from the view's own ``ordering`` attribute instead (see
+    # ``get_ordering``), because it is a property of the queryset's model and
+    # belongs beside the queryset rather than in a shared paginator.
+    #
+    # The override widens DRF's attribute to include None, which is the point:
+    # "no ordering anywhere" must be a loud configuration error rather than a
+    # silent fall back to a column that does not exist. The ignore is mypy's
+    # objection to narrowing a base-class attribute, not a runtime concern.
+    ordering: tuple[str, ...] | None = None  # type: ignore[assignment]
+
+    def get_ordering(
+        self,
+        request: Any,
+        queryset: Any,
+        view: Any,
+    ) -> tuple[str, ...]:
+        """The view's ordering, and a legible failure when there is none.
+
+        DRF asserts rather than raising, and an ``assert`` disappears under
+        ``python -O`` — which would turn a missing ordering into pages that
+        silently repeat or skip rows. A cursor is a position only if the order
+        is deterministic and total, so this is a configuration error, not an
+        internal invariant.
+
+        A double-underscore lookup is refused for the same reason DRF refuses
+        it: a cursor over a joined column is not a position in this table.
+        """
+        ordering = getattr(view, "ordering", None) or self.ordering
+        if ordering is None:
+            raise ImproperlyConfigured(
+                f"{type(view).__name__} uses cursor pagination but declares no "
+                "`ordering`. Set it on the view, e.g. ordering = ('name', 'public_id')."
+            )
+        if isinstance(ordering, str):
+            ordering = (ordering,)
+        ordering = tuple(ordering)
+        if any("__" in field for field in ordering):
+            raise ImproperlyConfigured(
+                f"{type(view).__name__} orders by a joined field ({ordering!r}); "
+                "cursor pagination requires fields on the model itself."
+            )
+        return ordering
+
     # `get_page_size` is not overridden: DRF's own implementation already
     # rejects a negative, non-integer, or over-maximum `limit`, and restating
     # it here would mean maintaining a copy of someone else's validation that
@@ -56,10 +102,18 @@ class CursorPagination(DRFCursorPagination):
         DRF exposes the next page only as a full URL. The contract in 04 §1.4
         returns the opaque cursor itself, so it is re-encoded here rather than
         having a client parse a URL to find it.
+
+        The next page's cursor is *not* the request's cursor: on the first page
+        the request has none at all, and on later pages the offset and position
+        differ. ``get_next_link`` computes the correct one — including the
+        offset-only form used while every row in a page shares a position — so
+        the token is taken out of the URL it builds.
         """
-        if not self.has_next or self.cursor is None:
+        link = self.get_next_link()
+        if link is None:
             return None
-        return self.encode_cursor(self.cursor)  # type: ignore[no-any-return]
+        values = parse_qs(urlparse(link).query).get(self.cursor_query_param)
+        return values[0] if values else None
 
     def get_paginated_response(self, data: Any) -> Response:
         return Response(

@@ -64,7 +64,7 @@ def _check_cache() -> tuple[bool, str]:
         cache.set("health:ready", "1", timeout=5)
         if cache.get("health:ready") != "1":
             return False, "cache read-back mismatch"
-    except Exception as exc:  # noqa: BLE001 - any cache failure means unready
+    except Exception as exc:
         logger.error("Readiness: cache unreachable", exc_info=exc)
         return False, "cache unreachable"
     return True, "ok"

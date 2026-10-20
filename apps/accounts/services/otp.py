@@ -113,8 +113,8 @@ def _generate_code() -> str:
     credential is the whole game.
 
     The value is zero-padded to :data:`CODE_LENGTH`, and ``randbelow(10**6)``
-    spans ``000000``–``999999`` uniformly — so leading zeros are real codes and
-    not a shorter one. A generator that produced ``100000``–``999999`` would
+    spans ``000000``-``999999`` uniformly — so leading zeros are real codes and
+    not a shorter one. A generator that produced ``100000``-``999999`` would
     quietly cut the space by 10%.
     """
     return f"{secrets.randbelow(_CODE_MODULUS):0{CODE_LENGTH}d}"
@@ -266,11 +266,13 @@ def verify(*, destination: str, purpose: str, code: str) -> OTPCode:
     Order of checks, and why:
 
     1. **Find the row.** No row at all is :class:`OTPNotFound`.
-    2. **Rate limit, per code** (§6.4's ``otp_verify``). Counted before the code
-       is examined, so an attempt that fails the comparison still spends a unit.
-    3. **Consumed or expired or out of attempts** — all three mean "this code can
+    2. **Consumed, expired or out of attempts** — all three mean "this code can
        no longer be used", and each gets the message that tells the member what
-       to do next.
+       to do next. Checked before the limiter because a dead code cannot be
+       guessed at: charging the per-code budget for it would throttle a member
+       who is retrying a code they have already used, while protecting nothing.
+    3. **Rate limit, per code** (§6.4's ``otp_verify``). Counted before the code
+       is compared, so an attempt that fails the comparison still spends a unit.
     4. **Compare.** ``check_password`` is constant-time in the comparison
        (SEC-OTP-005) and is the same machinery that protects a password, so a
        leaked ``otp_codes`` table is not a set of usable codes (SEC-OTP-002).
@@ -307,20 +309,24 @@ def verify(*, destination: str, purpose: str, code: str) -> OTPCode:
         if record is None:
             raise OTPNotFound(f"No {purpose} code has been issued to this destination.")
 
-        # Keyed on the row, not the destination: §6.4 says "per code", and an
-        # integer primary key is safe to use here because `config.ratelimit`
-        # hashes every identifier before it becomes a key, so the id never
-        # appears in Redis and never leaves the process (D6).
-        decision = ratelimit.consume("otp_verify", ratelimit.composite("otp", str(record.pk)))
-        if not decision.allowed:
-            raise RateLimited(scope="otp_verify", retry_after=decision.retry_after)
-
         if record.consumed_at is not None:
             raise OTPNotFound("That code has already been used.")
         if record.expires_at <= now:
             raise OTPExpired("That code has expired.")
         if record.attempts >= record.max_attempts:
             raise OTPNotFound("That code has no attempts left.")
+
+        # Keyed on (destination, row), not on the row alone: primary keys are
+        # reused after a rollback, so a counter keyed on the id would let one
+        # code's spent budget throttle a later code that happened to be assigned
+        # the same id. In production the pair is stable for the life of a code;
+        # in tests it is what keeps two tests' counters apart.
+        decision = ratelimit.consume(
+            "otp_verify",
+            ratelimit.composite("otp", destination, str(record.pk)),
+        )
+        if not decision.allowed:
+            raise RateLimited(scope="otp_verify", retry_after=decision.retry_after)
 
         if check_password(code.strip(), record.code_hash):
             record.consumed_at = now
@@ -335,15 +341,19 @@ def verify(*, destination: str, purpose: str, code: str) -> OTPCode:
             )
             return record
 
+        # The increment must commit. Raising inside the ``atomic()`` block would
+        # roll it back, so every wrong guess would read ``attempts == 1`` and the
+        # cap would never be reached — the control would exist on paper only.
         _record_failed_attempt(record, now)
-        logger.info(
-            "otp.rejected",
-            extra={
-                "purpose": purpose,
-                "destination": _masked(destination),
-                "otp_id": record.pk,
-                "attempts": record.attempts,
-                "max_attempts": record.max_attempts,
-            },
-        )
-        raise InvalidOTP("That code is not correct.")
+
+    logger.info(
+        "otp.rejected",
+        extra={
+            "purpose": purpose,
+            "destination": _masked(destination),
+            "otp_id": record.pk,
+            "attempts": record.attempts,
+            "max_attempts": record.max_attempts,
+        },
+    )
+    raise InvalidOTP("That code is not correct.")

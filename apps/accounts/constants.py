@@ -88,7 +88,7 @@ class OTPPurpose(models.TextChoices):
     LOGIN = "LOGIN", "Login"
     PHONE_VERIFY = "PHONE_VERIFY", "Phone verification"
     EMAIL_VERIFY = "EMAIL_VERIFY", "Email verification"
-    PASSWORD_RESET = "PASSWORD_RESET", "Password reset"
+    PASSWORD_RESET = "PASSWORD_RESET", "Password reset"  # pragma: allowlist secret
     PIN_RESET = "PIN_RESET", "PIN reset"
     TRANSACTION = "TRANSACTION", "Transaction authorisation"
 
@@ -98,7 +98,7 @@ class TokenPurpose(models.TextChoices):
 
     EMAIL_VERIFY = "EMAIL_VERIFY", "Email verification"
     PHONE_VERIFY = "PHONE_VERIFY", "Phone verification"
-    PASSWORD_RESET = "PASSWORD_RESET", "Password reset"
+    PASSWORD_RESET = "PASSWORD_RESET", "Password reset"  # pragma: allowlist secret
 
 
 class DevicePlatform(models.TextChoices):

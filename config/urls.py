@@ -11,7 +11,7 @@ only on a **breaking** contract change (11 §7, 04 §1.1).
 from __future__ import annotations
 
 from django.contrib import admin
-from django.urls import include, path
+from django.urls import URLPattern, URLResolver, include, path
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 
 from config import branding
@@ -21,10 +21,14 @@ admin.site.site_header = f"{branding.BRAND_NAME} administration"
 admin.site.site_title = branding.BRAND_NAME
 admin.site.index_title = f"{branding.BRAND_NAME} — {branding.BRAND_TAGLINE}"
 
-# Project apps are included here by the slice that builds them. An empty list
-# is correct in S0: there is no endpoint yet, and an endpoint added without its
-# permission class is a test failure (SEC-AUTHZ-001), not this file's problem.
-api_v1_patterns: list[object] = []
+# Project apps are included here by the slice that builds them. An endpoint
+# added without its permission class is a test failure (SEC-AUTHZ-001), not
+# this file's problem.
+api_v1_patterns: list[URLPattern | URLResolver] = [
+    # S3. Public reads; the write methods arrive with `platform.manage_locations`
+    # in S5, because that permission does not exist yet.
+    path("locations/", include("apps.locations.urls")),
+]
 
 urlpatterns = [
     path("admin/", admin.site.urls),

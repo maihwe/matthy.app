@@ -17,8 +17,8 @@ import.
 
 from __future__ import annotations
 
+from config.env import env
 from config.settings.production import *  # noqa: F403
-from config.settings.production import env
 
 # Staging runs with real-shaped data but never real people's data, and its
 # secrets are its own: a staging credential cannot open production.

@@ -16,7 +16,7 @@ import uuid
 from datetime import timedelta
 
 import pytest
-from django.contrib.auth.models import ModelBackend
+from django.contrib.auth.backends import ModelBackend
 from django.db.models import Model
 from django.utils import timezone
 

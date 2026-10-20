@@ -1,0 +1,428 @@
+openapi: 3.0.3
+info:
+  title: IHWEZA API
+  version: 1.0.0
+  description: |-
+    Community contribution, savings, borrowing & disbursement platform.
+
+    Money is a decimal string in the currency's major unit (04 §1.3). Identifiers are UUIDs, never internal integer keys (04 §1).
+paths:
+  /api/v1/locations/:
+    get:
+      operationId: locations_list
+      description: |-
+        ``GET /locations/`` — children of a parent, a search, or the roots.
+
+        04 §4: ``?parent=<uuid>&type=STREET&search=opebi&limit=20``. The three modes
+        are not interchangeable and the endpoint makes the distinction explicit:
+
+        * ``parent`` — the next level down from that node;
+        * ``search`` — a name match at any tier (FR-LOC-003);
+        * neither — the country's top-level nodes, which is the only sensible
+          meaning of "the list" for a tree.
+
+        ``type`` and ``country`` narrow any of the three. An unknown ``parent`` is a
+        404 rather than an empty page: a client that followed a stale link should
+        learn that the place is gone, not that nobody lives there.
+      parameters:
+      - name: cursor
+        required: false
+        in: query
+        description: The pagination cursor value.
+        schema:
+          type: string
+      - name: limit
+        required: false
+        in: query
+        description: Number of results per page (default 50, maximum 200).
+        schema:
+          type: integer
+          maximum: 200
+      tags:
+      - locations
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedLocationList'
+          description: ''
+  /api/v1/locations/{public_id}/:
+    get:
+      operationId: locations_retrieve
+      description: |-
+        ``GET /locations/{id}/`` — a node with a bounded window of children.
+
+        Children are capped at ``MAX_EMBEDDED_CHILDREN``. An uncapped embed would
+        make one request for a state return the state and the first page of its 774
+        LGAs, with the response size growing every time an LGA is added — a
+        pagination bug disguised as a convenience.
+      parameters:
+      - in: path
+        name: public_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - locations
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LocationDetail'
+          description: ''
+  /api/v1/locations/countries/:
+    get:
+      operationId: locations_countries_list
+      description: '``GET /locations/countries/`` — active countries, by name.'
+      parameters:
+      - name: cursor
+        required: false
+        in: query
+        description: The pagination cursor value.
+        schema:
+          type: string
+      - name: limit
+        required: false
+        in: query
+        description: Number of results per page (default 50, maximum 200).
+        schema:
+          type: integer
+          maximum: 200
+      tags:
+      - locations
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedCountryList'
+          description: ''
+  /api/v1/locations/countries/{code}/types/:
+    get:
+      operationId: locations_countries_types_retrieve
+      description: '``GET /locations/countries/{code}/types/`` — that country''s tiers.'
+      parameters:
+      - in: path
+        name: code
+        schema:
+          type: string
+        required: true
+      tags:
+      - locations
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CountryTypeListResponse'
+          description: ''
+components:
+  schemas:
+    Country:
+      type: object
+      description: |-
+        A country and the currency it uses.
+
+        ``currency`` is a two-way field in the response: the code, not a nested
+        object, because the caller's next request is ``?country=NG`` and not a web
+        of joins.
+      properties:
+        iso2:
+          type: string
+          maxLength: 2
+        iso3:
+          type: string
+          maxLength: 3
+        name:
+          type: string
+          maxLength: 100
+        dial_code:
+          type: string
+          description: E.164 dialling prefix including '+', e.g. '+234'.
+          maxLength: 8
+        currency:
+          type: string
+          readOnly: true
+        default_locale:
+          type: string
+          maxLength: 16
+      required:
+      - currency
+      - dial_code
+      - iso2
+      - iso3
+      - name
+    CountryTypeListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/LocationType'
+      required:
+      - data
+    Location:
+      type: object
+      description: A location in a list or search result (04 §4).
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        name:
+          type: string
+          maxLength: 160
+        slug:
+          type: string
+          maxLength: 160
+          pattern: ^[-a-zA-Z0-9_]+$
+        code:
+          type: string
+          nullable: true
+          description: Official code where the country publishes one, e.g. a state
+            code.
+          maxLength: 32
+        type:
+          type: string
+          readOnly: true
+        level:
+          type: integer
+          readOnly: true
+        is_leaf:
+          type: boolean
+          readOnly: true
+        country:
+          type: string
+          readOnly: true
+        parent_id:
+          type: string
+          format: uuid
+          readOnly: true
+          nullable: true
+        latitude:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,3}(?:\.\d{0,6})?$
+          nullable: true
+        longitude:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,3}(?:\.\d{0,6})?$
+          nullable: true
+      required:
+      - country
+      - id
+      - is_leaf
+      - level
+      - name
+      - parent_id
+      - slug
+      - type
+    LocationDetail:
+      type: object
+      description: |-
+        A location with its direct children.
+
+        ``group_count`` and ``/locations/{id}/groups/`` (FR-LOC-004) arrive with
+        S5: they read ``groups``, which is L1 and does not exist yet. Returning a
+        hard-coded zero here would be a field a client could rely on and that would
+        be wrong — worse than a field that arrives documented and late.
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        name:
+          type: string
+          maxLength: 160
+        slug:
+          type: string
+          maxLength: 160
+          pattern: ^[-a-zA-Z0-9_]+$
+        code:
+          type: string
+          nullable: true
+          description: Official code where the country publishes one, e.g. a state
+            code.
+          maxLength: 32
+        type:
+          type: string
+          readOnly: true
+        level:
+          type: integer
+          readOnly: true
+        is_leaf:
+          type: boolean
+          readOnly: true
+        country:
+          type: string
+          readOnly: true
+        parent_id:
+          type: string
+          format: uuid
+          readOnly: true
+          nullable: true
+        latitude:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,3}(?:\.\d{0,6})?$
+          nullable: true
+        longitude:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,3}(?:\.\d{0,6})?$
+          nullable: true
+        children:
+          type: array
+          items:
+            $ref: '#/components/schemas/LocationSummary'
+          readOnly: true
+      required:
+      - children
+      - country
+      - id
+      - is_leaf
+      - level
+      - name
+      - parent_id
+      - slug
+      - type
+    LocationSummary:
+      type: object
+      description: |-
+        The child shape in a location detail response.
+
+        Deliberately narrow: a state with 774 LGAs must not make the state's detail
+        response carry every LGA's coordinates.
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        name:
+          type: string
+          maxLength: 160
+        slug:
+          type: string
+          maxLength: 160
+          pattern: ^[-a-zA-Z0-9_]+$
+        type:
+          type: string
+          readOnly: true
+        level:
+          type: integer
+          readOnly: true
+        is_leaf:
+          type: boolean
+          readOnly: true
+      required:
+      - id
+      - is_leaf
+      - level
+      - name
+      - slug
+      - type
+    LocationType:
+      type: object
+      description: One administrative tier as the country defines it (FR-LOC-001).
+      properties:
+        code:
+          type: string
+          description: Stable identifier, e.g. STATE, LGA, STREET. Uppercase.
+          maxLength: 16
+        name_singular:
+          type: string
+          maxLength: 50
+        name_plural:
+          type: string
+          maxLength: 50
+        level:
+          type: integer
+          maximum: 32767
+          minimum: -32768
+          description: 1-based; STATE is 1 in Nigeria.
+        is_leaf:
+          type: boolean
+          description: True when the country defines nothing below this tier (STREET
+            in Nigeria).
+      required:
+      - code
+      - level
+      - name_plural
+      - name_singular
+    PaginatedCountryList:
+      type: object
+      required:
+      - data
+      - pagination
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Country'
+        pagination:
+          type: object
+          required:
+          - next_cursor
+          - has_more
+          - limit
+          properties:
+            next_cursor:
+              type: string
+              nullable: true
+            has_more:
+              type: boolean
+            limit:
+              type: integer
+    PaginatedLocationList:
+      type: object
+      required:
+      - data
+      - pagination
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Location'
+        pagination:
+          type: object
+          required:
+          - next_cursor
+          - has_more
+          - limit
+          properties:
+            next_cursor:
+              type: string
+              nullable: true
+            has_more:
+              type: boolean
+            limit:
+              type: integer
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: ihweza_admin_session
+    jwtAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

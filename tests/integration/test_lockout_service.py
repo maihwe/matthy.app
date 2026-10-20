@@ -325,8 +325,8 @@ class TestLogging:
 
         events = _records(caplog, "account.locked")
         assert len(events) == 1
-        assert getattr(events[0], "lockout_seconds") == django_settings.LOCKOUT["base_seconds"]
-        assert getattr(events[0], "user_public_id") == str(user.public_id)
+        assert events[0].lockout_seconds == django_settings.LOCKOUT["base_seconds"]
+        assert events[0].user_public_id == str(user.public_id)
 
     def test_ordinary_failures_are_not_logged(self, caplog: pytest.LogCaptureFixture) -> None:
         """Every mistyped password in the country is not an alert."""
@@ -345,6 +345,9 @@ class TestLogging:
         locked = _fail(user, SMALL_SCHEDULE["threshold"])
         inside = locked.locked_until - timedelta(seconds=1)
 
+        # The lockout above was logged, and caplog keeps records for the whole
+        # test. Clearing is what makes "not logged *again*" the question asked.
+        caplog.clear()
         with caplog.at_level(logging.WARNING, logger="apps.accounts.services.lockout"):
             for _ in range(5):
                 record_failure(user, now=inside)

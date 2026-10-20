@@ -51,7 +51,7 @@ from tests.factories import SuspendedUserFactory, UserFactory
 
 pytestmark = [pytest.mark.integration, pytest.mark.django_db, pytest.mark.security]
 
-PASSWORD = "xK7#mQp2!vLz9Rt"
+PASSWORD = "xK7#mQp2!vLz9Rt"  # pragma: allowlist secret
 WRONG = "nQ8!wR3@tY6#uI9o"
 """Two visibly-synthetic constants, never realistic-looking ones, so a reviewer
 scanning a diff cannot mistake either for a leaked credential (SEC-SEC-001)."""
@@ -615,8 +615,8 @@ class TestTheLogLines:
 
         records = _records(caplog, "login.succeeded")
         assert len(records) == 1
-        assert getattr(records[0], "user_public_id") == str(user.public_id)
-        assert getattr(records[0], "method") == "phone"
+        assert records[0].user_public_id == str(user.public_id)
+        assert records[0].method == "phone"
 
     def test_an_identifier_with_no_account_is_recorded_at_warning(
         self, caplog: pytest.LogCaptureFixture
@@ -636,8 +636,8 @@ class TestTheLogLines:
         records = _records(caplog, "login.identifier_unknown")
         assert len(records) == 1
         assert records[0].levelno == logging.WARNING
-        assert getattr(records[0], "method") == "phone"
-        assert getattr(records[0], "source_ip") is None
+        assert records[0].method == "phone"
+        assert records[0].source_ip is None
 
     def test_an_identifier_that_is_not_a_number_is_recorded_as_such(
         self, caplog: pytest.LogCaptureFixture
@@ -654,7 +654,7 @@ class TestTheLogLines:
             _login("not a number at all")
 
         records = _records(caplog, "login.identifier_unknown")
-        assert getattr(records[0], "parseable") is False
+        assert records[0].parseable is False
 
     def test_a_refusal_inside_a_lockout_is_recorded(
         self, caplog: pytest.LogCaptureFixture, monkeypatch: pytest.MonkeyPatch
@@ -673,7 +673,7 @@ class TestTheLogLines:
 
         records = _records(caplog, "login.refused_locked")
         assert len(records) == 1
-        assert getattr(records[0], "user_public_id") == str(user.public_id)
+        assert records[0].user_public_id == str(user.public_id)
 
     def test_a_rate_limit_refusal_is_recorded_with_its_window(
         self, caplog: pytest.LogCaptureFixture, monkeypatch: pytest.MonkeyPatch
@@ -690,8 +690,8 @@ class TestTheLogLines:
 
         records = _records(caplog, "login.rate_limited")
         assert len(records) == 1
-        assert getattr(records[0], "retry_after") > 0
-        assert getattr(records[0], "scope") == "login"
+        assert records[0].retry_after > 0
+        assert records[0].scope == "login"
 
     def test_no_record_carries_the_identifier_or_the_password(
         self, caplog: pytest.LogCaptureFixture

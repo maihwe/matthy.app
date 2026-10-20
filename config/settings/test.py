@@ -13,8 +13,9 @@ is never a development target, and the same reasoning applies one level down.
 
 from __future__ import annotations
 
+from config.env import env
 from config.settings.base import *  # noqa: F403
-from config.settings.base import DATABASES, env
+from config.settings.base import DATABASES
 
 DEBUG = False
 """False, so that a test exercising an error path sees the same response shape
