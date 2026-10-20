@@ -1,4 +1,4 @@
-"""The ``accounts`` data model (03 §4.1–4.4).
+"""The ``accounts`` data model (03 §4.1-4.4).
 
 Three decisions here are load-bearing, and each is a place where the obvious
 implementation is wrong in a way that only shows up in production:
@@ -263,7 +263,7 @@ class User(AbstractBaseUser, PermissionsMixin):
         return self.account_status == AccountStatus.ACTIVE
 
     @property
-    def date_joined(self) -> datetime:  # type: ignore[override]
+    def date_joined(self) -> datetime:
         """Django's name for ``date_registered``. See ``Meta`` notes above."""
         return self.date_registered
 
@@ -324,10 +324,10 @@ class UserProfile(models.Model):
     and a wide row that is hot on every authentication is a cache problem
     waiting to be discovered under load.
 
-    ``location_id`` is **not** here yet. It is a foreign key to ``locations``,
-    which lands in slice S3, and PHASE_1_PLAN P1-5 adds it then as an additive
-    nullable migration. An address may legitimately be absent, so no backfill
-    is required.
+    ``location_id`` is a foreign key to ``locations``, added in slice S3 as an
+    additive nullable migration (PHASE_1_PLAN P1-5). An address may legitimately
+    be absent, so no backfill is required, and ``accounts`` gains no import-time
+    dependency on ``locations``: the reference is by string label.
     """
 
     user = models.OneToOneField(
@@ -351,6 +351,17 @@ class UserProfile(models.Model):
         help_text="Storage key of the uploaded image, e.g. avatars/<uuid>.webp",
     )
     address_line = models.CharField(max_length=255, blank=True, default="")
+    location = models.ForeignKey(
+        "locations.Location",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        default=None,
+        related_name="user_profiles",
+        # SET_NULL, not CASCADE: an address is descriptive, and a location
+        # retired administratively must not delete the member's profile with
+        # it. The member keeps their account and loses an address.
+    )
 
     date_of_birth = models.DateField(null=True, blank=True, default=None)
     gender = models.CharField(max_length=24, choices=Gender.choices, blank=True, default="")

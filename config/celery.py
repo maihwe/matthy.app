@@ -12,6 +12,7 @@ testable without a running worker.
 from __future__ import annotations
 
 import os
+from typing import Any
 
 from celery import Celery
 
@@ -28,7 +29,7 @@ app.config_from_object("django.conf:settings", namespace="CELERY")
 app.autodiscover_tasks()
 
 
-@app.task(bind=True, ignore_result=True)
-def debug_task(self) -> str:  # pragma: no cover - diagnostic only
+@app.task(bind=True, ignore_result=True)  # type: ignore[untyped-decorator]
+def debug_task(self: Any) -> str:  # pragma: no cover - diagnostic only
     """Round-trip check that the broker is reachable."""
     return f"request: {self.request!r}"

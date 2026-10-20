@@ -292,7 +292,7 @@ class TestUnhandledExceptions:
         fragment, a file path or a connection string, and it is returned to
         whoever triggered it.
         """
-        secret = "connection to server at 10.0.0.5:5432 failed"
+        secret = "connection to server at 10.0.0.5:5432 failed"  # pragma: allowlist secret
         _, body = handle(RuntimeError(secret))
         rendered = json.dumps(body)
         assert secret not in rendered

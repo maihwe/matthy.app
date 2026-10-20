@@ -15,8 +15,8 @@ from __future__ import annotations
 from typing import Final
 
 __all__ = [
-    "BRAND_COLOR_PRIMARY",
     "BRAND_COLOR_ACCENT",
+    "BRAND_COLOR_PRIMARY",
     "BRAND_LOGO_MARK",
     "BRAND_NAME",
     "BRAND_TAGLINE",

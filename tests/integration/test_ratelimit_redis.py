@@ -107,7 +107,7 @@ class TestTheRealBackend:
         try:
             consume("otp_issue", who)
 
-            ttl = getattr(cache, "ttl")(_key("otp_issue", who))
+            ttl = cache.ttl(_key("otp_issue", who))
 
             # Redis rounds TTL to whole seconds, so a fresh key reads as the full
             # window and can read one second less if the clock ticked between the
@@ -123,10 +123,11 @@ class TestTheRealBackend:
 
         reset("pin_entry", who)
 
+        # Checked before consuming again: a consume seeds the key, so asserting
+        # absence after one would be asserting that the limiter does not work.
+        # django-redis reports 0 for a key that does not exist.
+        assert cache.ttl(_key("pin_entry", who)) == 0
         assert consume("pin_entry", who).allowed is True
-        # Nothing is left behind: a counter that is merely zeroed would still
-        # hold a Redis key per member who ever mistyped a PIN.
-        assert getattr(cache, "ttl")(_key("pin_entry", who)) == 0
         reset("pin_entry", who)
 
     @pytest.mark.slow

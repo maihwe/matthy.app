@@ -12,6 +12,7 @@ insecure.
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 
 from config.env import env, env_bool, env_int, env_list, require_env
 
@@ -69,6 +70,9 @@ LOCAL_APPS: list[str] = [
     # Slice S2. L0, and it depends on nothing: every module writes to it, so it
     # cannot import from any of them (PHASE_1_PLAN P1-5a).
     "apps.audit",
+    # Slice S3. L0. `accounts.UserProfile.location_id` references it, and so
+    # will `groups`; the module itself imports nothing from either.
+    "apps.locations",
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -120,7 +124,7 @@ TEMPLATES = [
 # per-request transaction would hold locks across the request lifetime —
 # including across any external call made during it, which §5.3 forbids.
 # ---------------------------------------------------------------------------
-DATABASES = {
+DATABASES: dict[str, dict[str, Any]] = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
         "NAME": require_env("POSTGRES_DB"),
@@ -261,7 +265,7 @@ SPECTACULAR_SETTINGS = {
 # ---------------------------------------------------------------------------
 REDIS_URL = require_env("REDIS_URL")
 
-CACHES = {
+CACHES: dict[str, dict[str, Any]] = {
     "default": {
         "BACKEND": "django_redis.cache.RedisCache",
         "LOCATION": REDIS_URL,
@@ -379,7 +383,7 @@ STORAGES = {
 # ---------------------------------------------------------------------------
 LOG_LEVEL = env("DJANGO_LOG_LEVEL", default="INFO")
 
-LOGGING = {
+LOGGING: dict[str, Any] = {
     "version": 1,
     "disable_existing_loggers": False,
     "formatters": {

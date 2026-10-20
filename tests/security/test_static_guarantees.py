@@ -144,8 +144,15 @@ def _method_names(node: ast.ClassDef) -> set[str]:
 
 
 def find_all_fields_serializers(tree: ast.AST, path: Path) -> list[Violation]:
-    """S5 — serializers declaring ``fields = '__all__'``."""
+    """S5 — serializers declaring ``fields = '__all__'``.
+
+    A violation is attributed to the outermost class that contains the
+    assignment. ``ast.walk`` visits that class before the nested ``Meta`` that
+    also contains it, so the first sighting wins and the assignment is not
+    reported twice under two different names.
+    """
     violations: list[Violation] = []
+    seen: set[int] = set()
     for node in ast.walk(tree):
         if not isinstance(node, ast.ClassDef):
             continue
@@ -160,6 +167,9 @@ def find_all_fields_serializers(tree: ast.AST, path: Path) -> list[Violation]:
                 continue
             for target in statement.targets:
                 if isinstance(target, ast.Name) and target.id == "fields":
+                    if id(statement) in seen:
+                        continue
+                    seen.add(id(statement))
                     violations.append(
                         Violation(
                             path,

@@ -207,12 +207,28 @@ def rotate(
     now = _now()
     digest = _digest(refresh_token)
 
+    # The refusal is raised *after* the transaction commits, never inside it.
+    # Three of the four branches below write before they refuse — the family
+    # revocation and the two "mark this session revoked" updates — and raising
+    # inside ``atomic()`` would roll exactly those writes back, leaving a
+    # detected theft's tokens live while telling the caller it was detected.
+    failure: InvalidRefreshToken | None = None
+    family_revoked = 0
+    successor: UserSession | None = None
+    token = ""
+
     with transaction.atomic():
         # Locked before anything is read from it: two concurrent rotations of the
         # same token are exactly the reuse case, and without the lock both could
         # read `revoked_at is None` and both mint a successor.
+        # `of=("self",)` is required, not cosmetic: `select_related("device")` is
+        # a LEFT OUTER JOIN because `device` is nullable, and PostgreSQL refuses
+        # `FOR UPDATE` on the nullable side of an outer join. Locking only
+        # `user_sessions` is also the correct scope — the device row is read, not
+        # modified, and a lock on it would serialise rotations across devices
+        # sharing an account for no benefit.
         session = (
-            UserSession.objects.select_for_update()
+            UserSession.objects.select_for_update(of=("self",))
             .select_related("device", "user")
             .filter(refresh_token_hash=digest)
             .first()
@@ -224,35 +240,51 @@ def rotate(
             raise InvalidRefreshToken("That refresh token is not in use.")
 
         if session.revoked_at is not None:
-            revoked = revoke_session_family(session, now=now)
-            # Logged before raising, and with identifiers rather than tokens: this
-            # event is the one SEC-AUD-005 alerts on. C5 has no separate security
-            # sink yet, so this line is the interim — see PHASE_1_PLAN.
+            family_revoked = revoke_session_family(session, now=now)
+            failure = RefreshTokenReuse(
+                "A refresh token that had already been rotated was presented."
+            )
+        elif session.expires_at <= now:
+            session.revoked_at = now
+            session.save(update_fields=["revoked_at"])
+            failure = InvalidRefreshToken("That refresh token has expired.")
+        elif session.device is not None and session.device.is_revoked:
+            # SEC-JWT-005 / FR-AUTH-012: the device was revoked, so its sessions
+            # are over regardless of what the token says.
+            session.revoked_at = now
+            session.save(update_fields=["revoked_at"])
+            failure = InvalidRefreshToken("That device has been revoked.")
+        else:
+            session.revoked_at = now
+            session.save(update_fields=["revoked_at"])
+
+            successor, token = _create_row(
+                user=session.user,
+                device=session.device,
+                ip_address=ip_address,
+                user_agent=user_agent,
+                now=now,
+            )
+
+    if failure is not None:
+        if isinstance(failure, RefreshTokenReuse):
+            # This event is the one SEC-AUD-005 alerts on. C5 has no separate
+            # security sink yet, so this line is the interim — see PHASE_1_PLAN.
             logger.warning(
                 "session.refresh_reuse_detected",
                 extra={
                     "session_public_id": str(session.public_id),
                     "user_public_id": str(session.user.public_id),
                     "device_id": session.device_id,
-                    "family_sessions_revoked": revoked,
+                    "family_sessions_revoked": family_revoked,
                 },
             )
-            raise RefreshTokenReuse("A refresh token that had already been rotated was presented.")
-
-        if session.expires_at <= now:
-            session.revoked_at = now
-            session.save(update_fields=["revoked_at"])
+        elif session.expires_at <= now:
             logger.info(
                 "session.refresh_expired",
                 extra={"session_public_id": str(session.public_id)},
             )
-            raise InvalidRefreshToken("That refresh token has expired.")
-
-        if session.device is not None and session.device.is_revoked:
-            # SEC-JWT-005 / FR-AUTH-012: the device was revoked, so its sessions
-            # are over regardless of what the token says.
-            session.revoked_at = now
-            session.save(update_fields=["revoked_at"])
+        else:
             logger.info(
                 "session.refresh_device_revoked",
                 extra={
@@ -260,19 +292,9 @@ def rotate(
                     "device_id": session.device_id,
                 },
             )
-            raise InvalidRefreshToken("That device has been revoked.")
+        raise failure
 
-        session.revoked_at = now
-        session.save(update_fields=["revoked_at"])
-
-        successor, token = _create_row(
-            user=session.user,
-            device=session.device,
-            ip_address=ip_address,
-            user_agent=user_agent,
-            now=now,
-        )
-
+    assert successor is not None  # the success branch is the only one without a failure
     logger.info(
         "session.rotated",
         extra={
@@ -321,17 +343,26 @@ def revoke_session_family(session: UserSession, *, now: datetime | None = None) 
     site.
     """
     stamp = now or _now()
-    filters = {"user_id": session.user_id, "revoked_at__isnull": True}
+    # A session with no device is still part of a family: the family key is
+    # (user, device), and `None` is a device value like any other. Treating it as
+    # "no family" would leave the successor of a device-less rotation live after
+    # reuse was detected — which is the one outcome SEC-JWT-004 exists to
+    # prevent. The web admin does not reach this path at all: it uses Django
+    # sessions (02 §5.7), so device-less rows here are API sessions that never
+    # supplied a device.
     if session.device_id is None:
-        # A session with no device has no family to speak of. Revoking *all* of
-        # the member's sessions would be a wider action than the caller asked
-        # for; revoking just this one is the conservative reading, and the caller
-        # that wants everything has `revoke_all_for_user`.
-        return UserSession.objects.filter(pk=session.pk, revoked_at__isnull=True).update(
-            revoked_at=stamp
+        family = UserSession.objects.filter(
+            user_id=session.user_id,
+            device_id__isnull=True,
+            revoked_at__isnull=True,
         )
-    filters["device_id"] = session.device_id
-    return UserSession.objects.filter(**filters).update(revoked_at=stamp)
+    else:
+        family = UserSession.objects.filter(
+            user_id=session.user_id,
+            device_id=session.device_id,
+            revoked_at__isnull=True,
+        )
+    return family.update(revoked_at=stamp)
 
 
 def revoke_all_for_user(user: User, *, now: datetime | None = None) -> int:

@@ -29,7 +29,7 @@ from __future__ import annotations
 
 import hashlib
 from dataclasses import dataclass
-from typing import Final, Literal
+from typing import Final, Literal, cast
 
 from django.conf import settings
 from django.core.cache import cache
@@ -108,11 +108,17 @@ def limit_for(scope: str) -> Limit:
             f"No rate limit configured for scope {scope!r}. Known scopes: {known}. "
             "Add it to settings.RATE_LIMITS rather than calling the limiter without one."
         )
+    on_unavailable = str(raw.get("on_unavailable", "deny"))
+    if on_unavailable not in ("deny", "allow"):
+        raise ImproperlyConfigured(
+            f"Rate limit for scope {scope!r} has on_unavailable={on_unavailable!r}; "
+            "the only values are 'deny' and 'allow'."
+        )
     try:
         limit = Limit(
-            limit=int(raw["limit"]),  # type: ignore[arg-type]
-            window_seconds=int(raw["window_seconds"]),  # type: ignore[arg-type]
-            on_unavailable=str(raw.get("on_unavailable", "deny")),  # type: ignore[arg-type]
+            limit=int(str(raw["limit"])),
+            window_seconds=int(str(raw["window_seconds"])),
+            on_unavailable=cast("Unavailable", on_unavailable),
         )
     except (KeyError, TypeError, ValueError) as exc:
         raise ImproperlyConfigured(
@@ -146,7 +152,7 @@ def _window_remaining(key: str, window_seconds: int) -> int:
         return window_seconds
     try:
         remaining = int(ttl(key))
-    except Exception:  # noqa: BLE001 - see docstring: cosmetic value, never fatal
+    except Exception:
         return window_seconds
     return remaining if remaining > 0 else window_seconds
 
@@ -204,7 +210,7 @@ def consume(scope: str, identifier: str) -> Decision:
                     retry_after=0,
                 )
             count = int(cache.incr(key))
-    except Exception as exc:  # noqa: BLE001 - the whole point of on_unavailable
+    except Exception as exc:
         if limit.on_unavailable == "allow":
             return Decision(
                 scope=scope,

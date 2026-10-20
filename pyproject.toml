@@ -47,12 +47,25 @@ ignore = [
     # field they left blank. The rule's advice is written for models where "" and
     # NULL are interchangeable; here they are not.
     "DJ001",
+    # N818 — "exception names should end in Error". The domain errors are named
+    # after the condition (``InvalidCredentials``, ``OTPExpired``), because those
+    # names are the vocabulary of the service layer and of the stable ``code``
+    # each one carries; the API maps them by class, and documents refer to them
+    # by name. An ``Error`` suffix on every one would add a word that carries no
+    # information and would ripple through 04/10 and the test suite. The base
+    # class, ``AccountError``, keeps it.
+    "N818",
 ]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["S105", "S106"]        # noqa: allow dummy credentials in factories
 "config/settings/**" = ["S105"]      # setting names read as hard-coded secrets to bandit
 "scripts/**" = ["T201"]              # these are command-line tools; stdout is the interface
+# RUF012 — Django reads ``Meta.constraints``/``Meta.indexes``, ``REQUIRED_FIELDS``
+# and ``Meta.ordering`` as class-level metadata and copies them itself; they are
+# not shared mutable state between instances. Annotating every one as ``ClassVar``
+# would add noise to declarations that are already a fixed schema vocabulary.
+"apps/**/models.py" = ["RUF012"]
 
 [tool.ruff.lint.flake8-tidy-imports.banned-api]
 # SEC-INJ-004 — no pickle, no unsafe YAML loading. Note that `eval` and `exec`
@@ -105,8 +118,8 @@ strict = true
 # type-checking shim, to production, to check a binding neither file uses: every
 # `list_display` entry is a plain string and every `has_*_permission` is
 # annotated explicitly. The classes stay unsubscripted and the checker is told to
-# accept it, for these two modules only.
-module = ["apps.accounts.admin", "apps.audit.admin"]
+# accept it, for these modules only.
+module = ["apps.accounts.admin", "apps.audit.admin", "apps.locations.admin"]
 disallow_any_generics = false
 
 [[tool.mypy.overrides]]
@@ -127,6 +140,22 @@ ignore_errors = true
 # wildcard alone.
 module = ["phonenumbers", "phonenumbers.*"]
 ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+# Celery ships no `py.typed` marker. The application touches it through
+# `config/celery.py` only, where the decorator is annotated explicitly.
+module = ["celery", "celery.*"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+# factory-boy has no typing support: `UserFactory()` is typed as the factory
+# class, not the `User` it builds, so every use in a test reads as an unknown
+# attribute (`UserFactory` has no attribute `pk`). Type-checking the tests would
+# mean casts at hundreds of call sites and would not catch what gate 3 exists
+# for — a `float` where money belongs, in `apps/` (strict for financial
+# modules). The production modules stay fully checked; the tests do not.
+module = ["tests.*", "tests"]
+ignore_errors = true
 
 [tool.django-stubs]
 django_settings_module = "config.settings.dev"

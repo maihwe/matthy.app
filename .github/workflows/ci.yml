@@ -32,12 +32,12 @@ env:
   # SEC-SEC-005 requires them to be distinct per environment — which is why
   # they are written here rather than read from a repository secret.
   DJANGO_SETTINGS_MODULE: config.settings.test
-  DJANGO_SECRET_KEY: ci-only-not-a-real-secret-do-not-reuse
+  DJANGO_SECRET_KEY: ci-only-not-a-real-secret-do-not-reuse  # pragma: allowlist secret
   DJANGO_DEBUG: "false"
   DJANGO_ALLOWED_HOSTS: localhost,127.0.0.1
   POSTGRES_DB: matthy
   POSTGRES_USER: matthy
-  POSTGRES_PASSWORD: ci-only-password
+  POSTGRES_PASSWORD: ci-only-password  # pragma: allowlist secret
   POSTGRES_HOST: localhost
   POSTGRES_PORT: "5432"
   POSTGRES_TEST_DB: test_matthy
@@ -124,7 +124,7 @@ jobs:
         env:
           POSTGRES_DB: matthy
           POSTGRES_USER: matthy
-          POSTGRES_PASSWORD: ci-only-password
+          POSTGRES_PASSWORD: ci-only-password  # pragma: allowlist secret
         ports: ["5432:5432"]
         options: >-
           --health-cmd "pg_isready -U matthy -d matthy"
@@ -148,8 +148,13 @@ jobs:
           cache: pip
       - run: pip install -r requirements/dev.txt
 
-      - name: Apply migrations to the test database
-        run: python manage.py migrate --noinput
+      # No explicit `migrate` step here. Under `config.settings.test` the
+      # database NAME is `POSTGRES_TEST_DB` (`test_matthy`), so `manage.py
+      # migrate` connects to a database that the service container never
+      # creates — and it would not be the database pytest uses anyway:
+      # pytest-django creates its own test database and applies migrations to
+      # it as part of `django_db_setup`. A migration error therefore still
+      # fails this job, reported by pytest rather than by a step racing it.
 
       # Suites 6a–6e of 13 §10. 6d (concurrency) runs on every PR rather than
       # nightly: concurrency bugs are the class most likely to pass every other
@@ -180,6 +185,13 @@ jobs:
   secrets:
     name: "8. Secret scan"
     runs-on: ubuntu-24.04
+    # gitleaks-action lists the PR's commits through the API on a
+    # `pull_request` event, so the token needs read access to pull requests in
+    # addition to the checkout. Without it the action fails with
+    # "Resource not accessible by integration" before scanning anything.
+    permissions:
+      contents: read
+      pull-requests: read
     steps:
       - uses: actions/checkout@v4
         with:

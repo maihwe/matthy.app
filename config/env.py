@@ -52,20 +52,30 @@ def require_env(name: str) -> str:
     return value
 
 
-def env_bool(name: str, default: bool = False) -> bool:
+def env_bool(name: str, default: bool | None = None) -> bool:
     """Read a boolean variable.
 
     Raises:
-        ImproperlyConfigured: if the value is set but unrecognised. Guessing at
-            ``DEBUG=maybe`` is how a debug page ends up in production (12 §4).
+        ImproperlyConfigured: if the value is set but unrecognised, or if it is
+            absent and no default was given. Guessing at ``DEBUG=maybe`` is how
+            a debug page ends up in production (12 §4), and guessing at an
+            absent flag is how a control silently takes the wrong value.
     """
-    raw = env(name)
+    raw = os.environ.get(name)
     if raw is None:
+        if default is None:
+            raise ImproperlyConfigured(
+                f"Required environment variable {name!r} is not set and has no default."
+            )
         return default
     normalised = raw.strip().lower()
     if normalised in _TRUE:
         return True
-    if normalised in _FALSE:
+    # An empty value is the falsy spelling of a flag. It is read through
+    # ``os.environ`` rather than through :func:`env` because ``env`` maps empty
+    # to "unset", and unset-with-no-default is an error — which is right for a
+    # secret and wrong for ``FLAG=``.
+    if normalised in _FALSE or normalised == "":
         return False
     raise ImproperlyConfigured(
         f"Environment variable {name!r} must be a boolean, got {raw!r}. "
@@ -73,14 +83,19 @@ def env_bool(name: str, default: bool = False) -> bool:
     )
 
 
-def env_int(name: str, default: int) -> int:
+def env_int(name: str, default: int | None = None) -> int:
     """Read an integer variable.
 
     Raises:
-        ImproperlyConfigured: if the value is set but not an integer.
+        ImproperlyConfigured: if the value is unset and no default was given, or
+            if it is set but not an integer.
     """
     raw = env(name)
     if raw is None:
+        if default is None:
+            raise ImproperlyConfigured(
+                f"Required environment variable {name!r} is not set and has no default."
+            )
         return default
     try:
         return int(raw)

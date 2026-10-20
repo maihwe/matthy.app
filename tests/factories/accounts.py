@@ -34,7 +34,7 @@ from apps.accounts.models import (
 
 # A visibly fake constant, never a realistic-looking one: a reviewer scanning a
 # diff must not have to check whether this is a leaked credential.
-FACTORY_PASSWORD = "factory-password-not-a-secret"
+FACTORY_PASSWORD = "factory-password-not-a-secret"  # pragma: allowlist secret
 FACTORY_PIN = "4821"
 
 

@@ -208,8 +208,13 @@ class TestRotation:
 
     def test_an_expired_token_is_refused_and_revoked(self) -> None:
         issued = issue(user=UserFactory())
+        # Both ends move: the CHECK constraint requires expires_at > issued_at,
+        # so aging only the expiry would be refused by the database before the
+        # service ever saw an expired row.
+        now = timezone.now()
         UserSession.objects.filter(pk=issued.session.pk).update(
-            expires_at=timezone.now() - timedelta(seconds=1)
+            issued_at=now - timedelta(days=1),
+            expires_at=now - timedelta(seconds=1),
         )
 
         with pytest.raises(InvalidRefreshToken):
@@ -319,8 +324,8 @@ class TestReuseDetection:
             rotate(refresh_token=issued.refresh_token)
         second = _reuse_events(caplog)
 
-        assert getattr(first[-1], "family_sessions_revoked") == 1
-        assert getattr(second[-1], "family_sessions_revoked") == 0
+        assert first[-1].family_sessions_revoked == 1
+        assert second[-1].family_sessions_revoked == 0
 
     def test_the_detection_is_alertable(self, caplog: pytest.LogCaptureFixture) -> None:
         """SEC-AUD-005: reuse detection must reach the server's alerting.
@@ -357,7 +362,7 @@ class TestReuseDetection:
             rotate(refresh_token=issued.refresh_token)
 
         event = _reuse_events(caplog)[-1]
-        assert getattr(event, "session_public_id")
+        assert event.session_public_id
         assert issued.refresh_token not in str(event.__dict__)
 
 

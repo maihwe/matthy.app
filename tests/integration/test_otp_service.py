@@ -258,9 +258,9 @@ class TestIssuanceSupersedes:
         first = issue(destination=destination, purpose=OTPPurpose.LOGIN)
         second = issue(destination=destination, purpose=OTPPurpose.LOGIN)
 
-        first.refresh_from_db()
+        first.record.refresh_from_db()
 
-        assert first.consumed_at is not None
+        assert first.record.consumed_at is not None
         assert second.record.consumed_at is None
 
     def test_the_superseded_code_cannot_be_verified(self) -> None:
@@ -282,7 +282,7 @@ class TestIssuanceSupersedes:
         login = issue(destination=destination, purpose=OTPPurpose.LOGIN)
         issue(destination=destination, purpose=OTPPurpose.PHONE_VERIFY)
 
-        login.refresh_from_db()
+        login.record.refresh_from_db()
 
         assert login.record.consumed_at is None
 

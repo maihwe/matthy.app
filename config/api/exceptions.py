@@ -64,9 +64,9 @@ class APIError(drf.APIException):
 class Conflict(APIError):
     """409 — a state conflict: duplicate reference, invalid transition."""
 
-    status_code: Final = 409
-    api_code: Final = "conflict"
-    default_detail: Final = "The request conflicts with the resource's current state."
+    status_code = 409
+    api_code = "conflict"
+    default_detail = "The request conflicts with the resource's current state."
 
 
 class IdempotencyConflict(APIError):
@@ -76,17 +76,17 @@ class IdempotencyConflict(APIError):
     whichever version arrived second.
     """
 
-    status_code: Final = 409
-    api_code: Final = "idempotency_conflict"
-    default_detail: Final = "This idempotency key was used with a different request body."
+    status_code = 409
+    api_code = "idempotency_conflict"
+    default_detail = "This idempotency key was used with a different request body."
 
 
 class Unprocessable(APIError):
     """422 — well-formed but violates a business rule."""
 
-    status_code: Final = 422
-    api_code: Final = "unprocessable"
-    default_detail: Final = "The request is well-formed but cannot be applied."
+    status_code = 422
+    api_code = "unprocessable"
+    default_detail = "The request is well-formed but cannot be applied."
 
 
 class SeparationOfDuties(PermissionDenied):
@@ -101,8 +101,8 @@ class SeparationOfDuties(PermissionDenied):
     here when the code is chosen.
     """
 
-    api_code: Final = "separation_of_duties"
-    default_detail: Final = "This action cannot be performed by the requester."
+    api_code = "separation_of_duties"
+    default_detail = "This action cannot be performed by the requester."
 
     def __str__(self) -> str:
         return super().__str__() or self.default_detail
