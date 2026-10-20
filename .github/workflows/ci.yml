@@ -185,6 +185,13 @@ jobs:
   secrets:
     name: "8. Secret scan"
     runs-on: ubuntu-24.04
+    # gitleaks-action lists the PR's commits through the API on a
+    # `pull_request` event, so the token needs read access to pull requests in
+    # addition to the checkout. Without it the action fails with
+    # "Resource not accessible by integration" before scanning anything.
+    permissions:
+      contents: read
+      pull-requests: read
     steps:
       - uses: actions/checkout@v4
         with:
