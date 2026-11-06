@@ -234,6 +234,78 @@ def _scan(checker, sources: list[Path]) -> list[Violation]:
     return violations
 
 
+def find_view_permission_resolution(tree: ast.AST, path: Path) -> list[Violation]:
+    """05 T11: API views delegate authorization to the single resolver.
+
+    Permission serialization belongs in serializers; permission-row queries
+    in a view would create a second authorization path.
+    """
+    if path.name != "views.py" and "views" not in path.parts:
+        return []
+    forbidden = {"GroupPermission", "GroupMemberRole", "PlatformRoleAssignment"}
+    aliases = set(forbidden)
+    for node in ast.walk(tree):
+        if isinstance(node, ast.ImportFrom) and node.module == "apps.groups.models":
+            aliases.update(a.asname or a.name for a in node.names if a.name in forbidden)
+    violations = []
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Name) and node.id in aliases:
+            violations.append(
+                Violation(
+                    path,
+                    node.lineno,
+                    "T11: views must use has_perm instead of permission assignment rows",
+                )
+            )
+        elif isinstance(node, ast.Attribute) and node.attr in {
+            "permission_grants",
+            "group_permissions",
+            "platform_assignments",
+            *forbidden,
+        }:
+            violations.append(
+                Violation(path, node.lineno, "T11: permission-row resolution belongs in has_perm")
+            )
+        elif (
+            isinstance(node, ast.keyword)
+            and node.arg
+            and node.arg.split("__")[0]
+            in {"permission_grants", "group_permissions", "platform_assignments"}
+        ):
+            violations.append(
+                Violation(path, node.lineno, "T11: permission-row lookup belongs in has_perm")
+            )
+    return violations
+
+
+class TestT11SinglePermissionResolver:
+    def test_api_views_do_not_resolve_permission_rows(self):
+        sources = [p for p in _python_sources() if "apps" in p.parts]
+        assert any(p.name == "views.py" for p in sources)
+        violations = _scan(find_view_permission_resolution, sources)
+        assert not violations, "\n".join(map(str, violations))
+
+    @pytest.mark.parametrize(
+        "source",
+        [
+            "allowed = GroupPermission.objects.filter(granted=True).exists()",
+            "from apps.groups.models import GroupPermission as Grant\nallowed = Grant.objects.exists()",
+            "allowed = group.roles.filter(permission_grants__granted=True).exists()",
+            "allowed = role.permission_grants.filter(granted=True).exists()",
+            "allowed = groups_models.GroupPermission.objects.exists()",
+        ],
+    )
+    def test_detector_catches_planted_bypasses(self, source):
+        # Keyword relation lookups must be caught as well as attribute access.
+        assert find_view_permission_resolution(ast.parse(source), Path("apps/example/views.py"))
+
+    def test_detector_allows_the_resolver_and_catalogue_reads(self):
+        source = "allowed = has_perm(request.user, group, 'groups.update')\nrows = Permission.objects.order_by('code')"
+        assert (
+            find_view_permission_resolution(ast.parse(source), Path("apps/example/views.py")) == []
+        )
+
+
 class TestSourceCoverage:
     """The ratchets are only meaningful over non-empty input.
 

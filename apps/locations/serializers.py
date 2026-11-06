@@ -5,10 +5,8 @@ is exposed as ``id`` and the internal integer key never is (04 §1): a client
 that holds a sequential key can enumerate the table, and a key that appears in a
 URL appears in access logs, screenshots and bug reports.
 
-All four serializers are read-only in this slice. Location administration is
-``platform.manage_locations`` (04 §4), and that permission is part of S5's
-catalogue, so the write methods arrive with the permission that guards them
-rather than with a temporary weaker check.
+These L0 serializers describe public reads. L1 group views provide strict write
+contracts guarded by ``platform.manage_locations`` and add real group counts.
 """
 
 from __future__ import annotations
@@ -117,10 +115,8 @@ class LocationSerializer(serializers.ModelSerializer[Location]):
 class LocationDetailSerializer(LocationSerializer):
     """A location with its direct children.
 
-    ``group_count`` and ``/locations/{id}/groups/`` (FR-LOC-004) arrive with
-    S5: they read ``groups``, which is L1 and does not exist yet. Returning a
-    hard-coded zero here would be a field a client could rely on and that would
-    be wrong — worse than a field that arrives documented and late.
+    L1 extends this shape with ``group_count`` and group discovery (FR-LOC-004).
+    That preserves the dependency from groups to locations.
     """
 
     children = serializers.SerializerMethodField()

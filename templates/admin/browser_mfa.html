@@ -1,0 +1,37 @@
+{% extends "admin/browser_base.html" %}
+{% block content %}
+<h1>{{ title }}</h1>
+{% if error_message %}<p class="errornote">{{ error_message }}</p>{% endif %}
+{% if setup %}
+  {% if enrollment %}
+    {% if enrollment.method == "TOTP" %}
+      <p>Add an account in your authenticator app using this setup key:</p>
+      <p><code>{{ enrollment.secret }}</code></p>
+      <details><summary>Provisioning URI</summary><p>{{ enrollment.provisioning_uri }}</p></details>
+      <p>Then enter the six-digit code from the app.</p>
+    {% else %}
+      <p>Enter the six-digit code sent to your verified phone.</p>
+    {% endif %}
+  {% else %}
+    <p>MFA is required for staff accounts. Choose an authenticator app or your verified phone and confirm your password.</p>
+  {% endif %}
+{% else %}
+  {% if method == "SMS" %}
+    {% if sms_unavailable %}<p>SMS delivery is unavailable. Use a recovery code or try sending again.</p>
+    {% else %}<p>Enter the code sent to your verified phone, or use an unused recovery code.</p>{% endif %}
+  {% else %}<p>Enter the code from your authenticator app, or use an unused recovery code.</p>{% endif %}
+{% endif %}
+<form method="post" action="{{ mfa_url }}" id="login-form">
+  {% csrf_token %}
+  {{ form.non_field_errors }}
+  {% for field in form %}<div class="form-row">{{ field.errors }}{{ field.label_tag }} {{ field }}</div>{% endfor %}
+  {% if setup %}
+    <input type="hidden" name="action" value="{% if enrollment %}confirm{% else %}setup{% endif %}">
+  {% else %}<input type="hidden" name="action" value="verify">{% endif %}
+  <div class="submit-row"><input type="submit" value="{% if setup and not enrollment %}Set up MFA{% else %}Verify{% endif %}"></div>
+</form>
+{% if not setup and method == "SMS" %}
+<form method="post" action="{{ mfa_url }}">{% csrf_token %}<button type="submit" name="action" value="resend">Send another SMS</button></form>
+{% endif %}
+<form method="post" action="{{ mfa_url }}">{% csrf_token %}<button type="submit" name="action" value="restart">Start sign-in again</button></form>
+{% endblock %}

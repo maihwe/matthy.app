@@ -334,6 +334,9 @@ left visibly unresolved rather than defaulted.
 | `is_phone_verified` | BOOLEAN | |
 | `two_factor_enabled` | BOOLEAN | |
 | `two_factor_method` | VARCHAR(16) NULL | |
+| `totp_secret` | TEXT | Fernet-encrypted shared seed; empty until confirmed or for SMS |
+| `mfa_version` | INTEGER | Starts at 0; increments on enable/disable; invalidates bearer and browser sessions |
+| `last_totp_step` | BIGINT | Last consumed 30-second step; -1 before use; prevents TOTP replay |
 | `failed_login_attempts` | SMALLINT | |
 | `locked_until` | TIMESTAMPTZ NULL | Account lockout (NFR-SEC-002) |
 | `is_staff`, `is_superuser` | BOOLEAN | Django admin plumbing |
@@ -360,13 +363,26 @@ can contradict each other.
 
 ### 4.3 `devices` and `user_sessions`
 
-`devices` (§4, §27): `id`, `user_id`, `device_fingerprint`, `platform`, `model`,
+`devices` (§4, §27): `id`, `public_id` UUID UNIQUE, `user_id`, `device_fingerprint`, `platform`, `model`,
 `os_version`, `app_version`, `push_token`, `last_seen_at`, `is_revoked`, `created_at`.
 `UNIQUE (user_id, device_fingerprint)`.
 
 `user_sessions` (§4 session management): `id`, `public_id`, `user_id`, `device_id` NULL,
-`refresh_token_hash`, `issued_at`, `expires_at`, `revoked_at`, `ip_address`,
+`family_id` UUID, `refresh_token_hash`, `issued_at`, `expires_at`, `revoked_at`, `revoked_reason`, `ip_address`,
 `user_agent`, `last_used_at`.
+
+`mfa_verified` records successful second-factor proof; `mfa_version` binds the
+session to the user's factor configuration. Rotation inherits both. Migration
+`0004_mfa` defaults legacy sessions to unverified; it never invents MFA proof.
+
+`0005_browser_mfa` adds `kind` (`TOKEN` or `BROWSER`),
+`browser_session_key_hash` and `browser_credential_state`. Browser rows require
+MFA verification and nonempty browser digests; token rows require empty digests.
+Browser rows bind the server-side Django cookie to its WEB device and original
+absolute deadline. Their random refresh placeholder is never delivered or
+accepted by the refresh service. Legacy rows default to `TOKEN`.
+`mfa_challenges.audience` distinguishes token and browser proofs; only browser
+proofs have a nonempty `browser_session_key_hash`.
 
 Refresh tokens are stored **hashed**, for the same reason passwords are: a leaked
 session table should not be a set of usable credentials. Rotation with reuse detection
@@ -382,6 +398,32 @@ Indexed on `(destination, purpose, expires_at)`.
 `PASSWORD_RESET`), `token_hash`, `expires_at`, `consumed_at`, `created_at`.
 
 Both store hashes, both are single-use (`consumed_at`), both expire (FR-AUTH-006/008/009).
+
+Email verification uses the existing token table, with a 24-hour expiry and a
+digest bound to the saved email and current password/PIN/MFA version. Resend
+consumes earlier email verification tokens. Confirmation consumes the proof and
+updates the email ownership fact atomically under the user lock. The channel
+booleans are the facts; `verification_status` summarizes them as `UNVERIFIED`,
+`PHONE_VERIFIED`, `EMAIL_VERIFIED` or `FULLY_VERIFIED`. Both confirmation orders
+produce the same summary. Email verification needs no additional schema migration.
+
+### 4.4.1 MFA enrollment, recovery and challenges
+
+`mfa_enrollments`: `id`, `user_id` UNIQUE, `method`, `secret` (encrypted TOTP seed),
+`code_hash` (SMS), `credential_state`, `expires_at`, `attempts`. Pending setup expires
+after 10 minutes, permits three guesses, and changes no active factor until confirmed.
+
+`mfa_recovery_codes`: `id`, `user_id`, `code_hash` UNIQUE, `consumed_at`. Ten 80-bit
+random codes are returned once after confirmation. Domain-separated SHA-256
+digests persist; each code is consumed under the user lock.
+
+`mfa_challenges`: `id`, `user_id`, `device_id`, `token_hash` UNIQUE,
+`credential_state`, `enrollment_required`, `audience`, `browser_session_key_hash`, `code_hash` (SMS), `expires_at`,
+`attempts`, `consumed_at`. Opaque 384-bit password proofs expire after five minutes,
+permit three guesses, and bind credentials, factor configuration, current role
+flags and verified phone state. Device ownership and revocation are checked on use.
+Fresh password login supersedes previous challenges. Enrollment-only proofs grant
+access solely to MFA setup/confirmation and never authorize other API routes.
 
 ### 4.5 Location tables (§3)
 
@@ -478,6 +520,22 @@ column later is a migration against a table every financial record references.
 ---
 
 ## 5. Groups and roles (L1)
+
+S5 adds `role_templates` (immutable scope and policy JSON), `role_sets` and their
+template bindings, `platform_role_assignments` (separate from group memberships)
+and a singleton `platform_permission_state`. Group and membership external IDs
+are UUIDs. `groups.permission_version` and `users.authorization_version` support
+immediate cache/session invalidation; `users.role_mfa_required` is derived by
+database triggers. Each `user_sessions` row records its authorization version.
+The additive account migration preserves legacy zero-version sessions.
+
+Roles bind to a frozen template. Grants have a `changed_by_id` actor;
+memberships have `status_changed_by_id`. Database triggers enforce role scope,
+required/forbidden grant bounds, assignment authority, initial bootstrap limits,
+owner/last-platform-admin preservation and immutable membership history.
+Invitation secrets are returned once and stored only as digests, with target,
+expiry and single-decision constraints. See [GROUPS.md](GROUPS.md) for lifecycle
+rules and [05_ROLE_PERMISSION_MATRIX.md](05_ROLE_PERMISSION_MATRIX.md) for the seed.
 
 ### 5.1 `group_types`
 `id`, `code` UNIQUE, `name`, `description`, `is_system`, `default_role_set_id` NULL.

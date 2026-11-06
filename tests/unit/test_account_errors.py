@@ -30,13 +30,20 @@ pytestmark = pytest.mark.unit
 
 _CODE_PATTERN = re.compile(r"\A[a-z][a-z0-9_]*\Z")
 
-LOGIN_PATH_CODES = {"invalid_credentials", "account_suspended", "account_closed"}
+LOGIN_PATH_CODES = {
+    "invalid_credentials",
+    "account_suspended",
+    "account_closed",
+    "service_unavailable",
+}
 """Every code a login attempt can produce, and no others.
 
 ``invalid_credentials`` is the collapsed failure SEC-AUTH-005 requires.
 ``account_suspended``/``account_closed`` are permitted because they are raised
 only *after* the password verified — a caller who reaches them has already
 proved the account exists, so nothing is leaked that they did not already know.
+``service_unavailable`` is also raised after verification when token signing or
+the required MFA flow is unavailable.
 """
 
 OTHER_CODES = {
@@ -54,6 +61,7 @@ OTHER_CODES = {
     # and being told to sign in again, which reveals nothing about any account.
     "invalid_refresh_token",
     "refresh_token_reuse",
+    "invalid_access_token",
 }
 """Every code that is *not* on the login path.
 
@@ -147,7 +155,7 @@ class TestTheLoginFailuresAreTheOnesWeMeant:
         assert _codes() == LOGIN_PATH_CODES | OTHER_CODES
 
     def test_the_login_path_has_exactly_one_failure_before_verification(self) -> None:
-        """Of the three codes, only one is reachable with the wrong password.
+        """Of the login codes, only one is reachable with the wrong password.
 
         ``account_suspended`` and ``account_closed`` are raised after the
         credentials verified, so they are not oracles. If a fourth code appears

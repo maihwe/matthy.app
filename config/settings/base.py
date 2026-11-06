@@ -48,7 +48,7 @@ ALLOWED_HOSTS = env_list("DJANGO_ALLOWED_HOSTS", default=["localhost", "127.0.0.
 # location search (03 §4.5, FR-LOC-003), and JSONB fields throughout.
 # ---------------------------------------------------------------------------
 DJANGO_APPS = [
-    "django.contrib.admin",
+    "config.admin.MFAAdminConfig",
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.sessions",
@@ -73,6 +73,7 @@ LOCAL_APPS: list[str] = [
     # Slice S3. L0. `accounts.UserProfile.location_id` references it, and so
     # will `groups`; the module itself imports nothing from either.
     "apps.locations",
+    "apps.groups",
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -87,6 +88,7 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "apps.accounts.middleware.BrowserMFAMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
@@ -161,6 +163,16 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 # "apps_accounts".
 AUTH_USER_MODEL = "accounts.User"
 
+# S4: PEM keys supplied by the environment. Health, migrations and public reads
+# can boot without them; issuing access tokens fails closed until both are set.
+# Literal \n escapes support single-line environment variables and Compose .env.
+JWT_SIGNING_KEY = (env("JWT_SIGNING_KEY", default="") or "").replace("\\n", "\n")
+JWT_VERIFYING_KEY = (env("JWT_VERIFYING_KEY", default="") or "").replace("\\n", "\n")
+JWT_ISSUER = env("JWT_ISSUER", default="ihweza")
+JWT_AUDIENCE = env("JWT_AUDIENCE", default="ihweza-api")
+PHONE_VERIFICATION_BACKEND = env("PHONE_VERIFICATION_BACKEND", default="")
+MFA_ENCRYPTION_KEYS = env("MFA_ENCRYPTION_KEYS", default="") or ""
+
 # SEC-AUTH-001: Argon2id first. The ordering matters — Django picks the first
 # hasher in the list, and keeps the rest for verifying older hashes.
 PASSWORD_HASHERS = [
@@ -204,12 +216,12 @@ AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
 
-# SEC-SES-004/005. Idle timeout is Django's session age; the absolute timeout
-# requires a middleware and lands with the auth API slice.
+# SEC-SES-004/005. Browser MFA enforces both deadlines against its backing row.
 SESSION_COOKIE_NAME = "ihweza_admin_session"
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = "Lax"
 SESSION_COOKIE_AGE = env_int("SESSION_IDLE_TIMEOUT_SECONDS", default=60 * 30)
+SESSION_ABSOLUTE_TIMEOUT_SECONDS = env_int("SESSION_ABSOLUTE_TIMEOUT_SECONDS", default=60 * 60 * 12)
 SESSION_SAVE_EVERY_REQUEST = True  # makes SESSION_COOKIE_AGE an idle timeout
 SESSION_ENGINE = "django.contrib.sessions.backends.cached_db"
 """SEC-SES-006: sessions are stored server-side; the cookie carries only the key."""
@@ -225,8 +237,8 @@ REST_FRAMEWORK = {
     # resolve to the same user and permission layer beneath, so authorisation
     # logic exists once.
     "DEFAULT_AUTHENTICATION_CLASSES": [
-        "rest_framework_simplejwt.authentication.JWTAuthentication",
-        "rest_framework.authentication.SessionAuthentication",
+        "apps.accounts.authentication.SessionJWTAuthentication",
+        "apps.accounts.authentication.AccountSessionAuthentication",
     ],
     # SEC-AUTHZ-001: default-deny. A view with no declared permission class is
     # a test failure, not an open endpoint.
@@ -254,6 +266,10 @@ SPECTACULAR_SETTINGS = {
     "SERVE_INCLUDE_SCHEMA": False,
     "SCHEMA_PATH_PREFIX": "/api/v1",
     "COMPONENT_SPLIT_REQUEST": True,
+    "ENUM_NAME_OVERRIDES": {
+        "GroupStatusEnum": "apps.groups.constants.GroupStatus.choices",
+        "MemberStatusEnum": "apps.groups.constants.MemberStatus.choices",
+    },
 }
 
 # ---------------------------------------------------------------------------
@@ -282,6 +298,22 @@ RATE_LIMITS: dict[str, dict[str, int | str]] = {
     # misses spraying across many accounts, per-IP alone misses a distributed
     # attack on one. The two are combined into one key by the login service.
     "login": {"limit": 10, "window_seconds": 15 * 60},
+    # The pair limit alone gives one IP a new allowance for every account.
+    "login_ip": {"limit": 50, "window_seconds": 15 * 60},
+    # Refresh is unauthenticated and performs a database lookup (C7).
+    "refresh": {"limit": 120, "window_seconds": 60},
+    "registration_ip": {"limit": 50, "window_seconds": 60 * 60},
+    "phone_verification_ip": {"limit": 120, "window_seconds": 60},
+    "email_verification_ip": {"limit": 50, "window_seconds": 60 * 60},
+    "email_verification": {"limit": 3, "window_seconds": 60 * 60},
+    "email_verification_destination": {"limit": 3, "window_seconds": 60 * 60},
+    "email_verification_confirm_ip": {"limit": 120, "window_seconds": 60},
+    "password_reset_ip": {"limit": 50, "window_seconds": 60 * 60},
+    "password_reset_confirm_ip": {"limit": 120, "window_seconds": 60},
+    "credential_change": {"limit": 5, "window_seconds": 15 * 60},
+    "mfa_setup": {"limit": 5, "window_seconds": 15 * 60},
+    "mfa_verify": {"limit": 10, "window_seconds": 15 * 60},
+    "mfa_challenge_ip": {"limit": 120, "window_seconds": 60},
     # SEC-OTP-004 gives two windows for one action, so there are two scopes.
     # Neither subsumes the other: the daily cap bounds SMS spend, and the
     # 15-minute cap bounds how fast one destination can be hammered.

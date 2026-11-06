@@ -37,6 +37,7 @@ CACHES["default"]["KEY_PREFIX"] = "ihweza-test"  # noqa: F405
 
 # 13 §5 Y-DET-007: no outbound network. Any test that tries is meant to fail.
 EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
+PHONE_VERIFICATION_BACKEND = "config.phone_verification.LocalEmailCapture"
 
 CELERY_TASK_ALWAYS_EAGER = True
 """Tasks run in-process so a test does not need a worker. 13 §5 Y-DET-006: a

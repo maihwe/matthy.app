@@ -17,13 +17,15 @@ milliseconds at a time. The three values that *are* low-entropy — a password, 
 **Rotation and reuse detection are one mechanism.** SEC-JWT-003 revokes the old
 row as it issues a new one, which leaves a fact in the database that would
 otherwise be unrecorded: *this token was already spent*. SEC-JWT-004 is what makes
-that fact worth recording — a presented token whose row is already revoked is not
-a retry, it is a copy, and the response is to revoke the whole family.
+that fact worth recording. Only a token revoked by rotation triggers reuse
+detection. Explicit logout, expiry and device revocation remain terminal
+rejections. Each login has its own family UUID, retained across rotations, so
+an old token cannot revoke a later login on the same device (C6).
 
 **Access tokens are not minted here.** SEC-JWT-001's access token is a
 short-lived JWT signed with an asymmetric key, and that key is environment
 configuration with a keypair behind it (SEC-SEC-001 forbids a default). Minting
-one belongs where ``simplejwt`` is wired and the key is read — the API layer, S4.
+one belongs in ``services/tokens.py``, where the RSA keypair is validated (S4).
 This module owns the half of the lifecycle the database holds, which is the half
 that has to be right.
 """
@@ -33,12 +35,15 @@ from __future__ import annotations
 import hashlib
 import logging
 import secrets
+import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 
 from django.db import transaction
+from django.db.models import Q, QuerySet
 from django.utils import timezone
 
+from apps.accounts.constants import SessionKind, SessionRevocationReason
 from apps.accounts.models import Device, User, UserSession
 from apps.accounts.services.errors import InvalidRefreshToken, RefreshTokenReuse
 
@@ -119,6 +124,19 @@ def _now() -> datetime:
     return timezone.now()
 
 
+def _lock_user(user_id: int) -> User:
+    """Serialize issuance, rotation and revocation in the same lock order.
+
+    Locking different predecessor rows first lets two replay requests deadlock
+    while each tries to revoke the other's successor. The user row comes first
+    in every write path; refresh frequency makes this a small per-user cost.
+    """
+    try:
+        return User.objects.select_for_update().get(pk=user_id)
+    except User.DoesNotExist:
+        raise InvalidRefreshToken() from None
+
+
 def _create_row(
     *,
     user: User,
@@ -126,12 +144,19 @@ def _create_row(
     ip_address: str | None,
     user_agent: str | None,
     now: datetime,
+    family_id: uuid.UUID | None = None,
+    mfa_verified: bool = False,
+    mfa_version: int | None = None,
 ) -> tuple[UserSession, str]:
     """Insert a session row and return it with the plaintext token."""
     token = _new_token()
     session = UserSession.objects.create(
         user=user,
         device=device,
+        family_id=family_id or uuid.uuid4(),
+        mfa_verified=mfa_verified,
+        mfa_version=user.mfa_version if mfa_version is None else mfa_version,
+        authorization_version=user.authorization_version,
         refresh_token_hash=_digest(token),
         issued_at=now,
         expires_at=now + REFRESH_TTL,
@@ -147,6 +172,7 @@ def issue(
     device: Device | None = None,
     ip_address: str | None = None,
     user_agent: str | None = None,
+    mfa_verified: bool = False,
 ) -> IssuedSession:
     """Start a session: mint a refresh token and record it hashed.
 
@@ -161,12 +187,23 @@ def issue(
     can recover it — a lost token is a re-authentication, not a lookup.
     """
     now = _now()
-    # No `transaction.atomic()` here: issuing a session is one INSERT, and a
-    # single statement is its own transaction. Rotation needs one because it
-    # revokes and inserts together — see `rotate`.
-    session, token = _create_row(
-        user=user, device=device, ip_address=ip_address, user_agent=user_agent, now=now
-    )
+    with transaction.atomic():
+        current_user = _lock_user(user.pk)
+        if not current_user.is_active:
+            raise InvalidRefreshToken("This account cannot start a session.")
+        if device is not None:
+            current_device = Device.objects.filter(pk=device.pk, user=current_user).first()
+            if current_device is None or current_device.is_revoked:
+                raise InvalidRefreshToken("This device cannot start a session.")
+            device = current_device
+        session, token = _create_row(
+            user=current_user,
+            device=device,
+            ip_address=ip_address,
+            user_agent=user_agent,
+            now=now,
+            mfa_verified=mfa_verified,
+        )
 
     logger.info(
         "session.issued",
@@ -217,20 +254,22 @@ def rotate(
     successor: UserSession | None = None
     token = ""
 
+    user_id = (
+        UserSession.objects.filter(refresh_token_hash=digest)
+        .values_list("user_id", flat=True)
+        .first()
+    )
+    if user_id is None:
+        logger.warning("session.refresh_unknown")
+        raise InvalidRefreshToken("That refresh token is not in use.")
+
     with transaction.atomic():
-        # Locked before anything is read from it: two concurrent rotations of the
-        # same token are exactly the reuse case, and without the lock both could
-        # read `revoked_at is None` and both mint a successor.
-        # `of=("self",)` is required, not cosmetic: `select_related("device")` is
-        # a LEFT OUTER JOIN because `device` is nullable, and PostgreSQL refuses
-        # `FOR UPDATE` on the nullable side of an outer join. Locking only
-        # `user_sessions` is also the correct scope — the device row is read, not
-        # modified, and a lock on it would serialise rotations across devices
-        # sharing an account for no benefit.
+        current_user = _lock_user(user_id)
+        # `of=("self",)` avoids locking the nullable side of the device join.
         session = (
             UserSession.objects.select_for_update(of=("self",))
             .select_related("device", "user")
-            .filter(refresh_token_hash=digest)
+            .filter(refresh_token_hash=digest, user=current_user)
             .first()
         )
 
@@ -239,24 +278,45 @@ def rotate(
             logger.warning("session.refresh_unknown")
             raise InvalidRefreshToken("That refresh token is not in use.")
 
-        if session.revoked_at is not None:
-            family_revoked = revoke_session_family(session, now=now)
-            failure = RefreshTokenReuse(
-                "A refresh token that had already been rotated was presented."
-            )
+        if session.kind != SessionKind.TOKEN:
+            failure = InvalidRefreshToken()
+        elif session.authorization_version != current_user.authorization_version:
+            failure = InvalidRefreshToken()
+        elif session.revoked_at is not None:
+            if session.revoked_reason in ("", SessionRevocationReason.ROTATED):
+                # Empty reasons preserve the pre-migration replay policy.
+                family_revoked = _revoke_rows(
+                    UserSession.objects.filter(user=current_user, family_id=session.family_id),
+                    now=now,
+                    reason=SessionRevocationReason.TOKEN_REUSE,
+                    preserve_rotated=True,
+                )
+                failure = RefreshTokenReuse(
+                    "A refresh token that had already been rotated was presented."
+                )
+            else:
+                failure = InvalidRefreshToken()
+        elif not current_user.is_active:
+            session.revoked_at = now
+            session.revoked_reason = SessionRevocationReason.ACCOUNT_INACTIVE
+            session.save(update_fields=["revoked_at", "revoked_reason"])
+            failure = InvalidRefreshToken()
         elif session.expires_at <= now:
             session.revoked_at = now
-            session.save(update_fields=["revoked_at"])
+            session.revoked_reason = SessionRevocationReason.EXPIRED
+            session.save(update_fields=["revoked_at", "revoked_reason"])
             failure = InvalidRefreshToken("That refresh token has expired.")
         elif session.device is not None and session.device.is_revoked:
             # SEC-JWT-005 / FR-AUTH-012: the device was revoked, so its sessions
             # are over regardless of what the token says.
             session.revoked_at = now
-            session.save(update_fields=["revoked_at"])
+            session.revoked_reason = SessionRevocationReason.DEVICE_REVOKED
+            session.save(update_fields=["revoked_at", "revoked_reason"])
             failure = InvalidRefreshToken("That device has been revoked.")
         else:
             session.revoked_at = now
-            session.save(update_fields=["revoked_at"])
+            session.revoked_reason = SessionRevocationReason.ROTATED
+            session.save(update_fields=["revoked_at", "revoked_reason"])
 
             successor, token = _create_row(
                 user=session.user,
@@ -264,6 +324,9 @@ def rotate(
                 ip_address=ip_address,
                 user_agent=user_agent,
                 now=now,
+                family_id=session.family_id,
+                mfa_verified=session.mfa_verified,
+                mfa_version=session.mfa_version,
             )
 
     if failure is not None:
@@ -279,17 +342,12 @@ def rotate(
                     "family_sessions_revoked": family_revoked,
                 },
             )
-        elif session.expires_at <= now:
-            logger.info(
-                "session.refresh_expired",
-                extra={"session_public_id": str(session.public_id)},
-            )
         else:
             logger.info(
-                "session.refresh_device_revoked",
+                "session.refresh_refused",
                 extra={
                     "session_public_id": str(session.public_id),
-                    "device_id": session.device_id,
+                    "reason": session.revoked_reason,
                 },
             )
         raise failure
@@ -306,6 +364,23 @@ def rotate(
     return IssuedSession(refresh_token=token, session=successor, expires_at=successor.expires_at)
 
 
+def _revoke_rows(
+    rows: QuerySet[UserSession],
+    *,
+    now: datetime,
+    reason: str,
+    preserve_rotated: bool = False,
+) -> int:
+    """Caller holds the user lock. Count live rows and retain original timestamps."""
+    count = rows.filter(revoked_at__isnull=True).update(revoked_at=now, revoked_reason=reason)
+    if not preserve_rotated:
+        rows.filter(
+            Q(revoked_reason=SessionRevocationReason.ROTATED)
+            | Q(revoked_reason="", revoked_at__isnull=False)
+        ).update(revoked_reason=reason)
+    return count
+
+
 def revoke(session: UserSession, *, now: datetime | None = None) -> bool:
     """End one session. Returns whether this call is what ended it.
 
@@ -314,55 +389,35 @@ def revoke(session: UserSession, *, now: datetime | None = None) -> bool:
     difference matters in a logout endpoint's response, and does not matter
     anywhere else.
     """
-    if session.revoked_at is not None:
-        return False
-    session.revoked_at = now or _now()
-    session.save(update_fields=["revoked_at"])
-    return True
+    with transaction.atomic():
+        _lock_user(session.user_id)
+        count = _revoke_rows(
+            UserSession.objects.filter(pk=session.pk, user_id=session.user_id),
+            now=now or _now(),
+            reason=SessionRevocationReason.REVOKED,
+        )
+        session.refresh_from_db()
+    return bool(count)
 
 
-def revoke_session_family(session: UserSession, *, now: datetime | None = None) -> int:
-    """Revoke every session belonging to the same family. Returns the count.
+def revoke_session_family(
+    session: UserSession,
+    *,
+    now: datetime | None = None,
+    reason: str = SessionRevocationReason.REVOKED,
+) -> int:
+    """End this login's rotation chain, including its old replay markers.
 
-    **This function is the only definition of "family" in the project**, and that
-    is deliberate. SEC-JWT-004 says reuse detection revokes "the entire session
-    family" and SEC-JWT-009 says logout, password change, PIN change and role
-    revocation invalidate it, but 03's ``user_sessions`` has no lineage column —
-    no ``family_id``, no ``replaced_by`` — so a family cannot be *represented*,
-    only inferred. It is inferred here as **(user, device)**, justified by
-    SEC-JWT-005's device binding: a family is what one device's token chain
-    became.
-
-    The inference is wrong in one real case, which is recorded as **C6**: a member
-    who signs out on a device and then replays the app's cached refresh token
-    looks exactly like a thief, because ``revoked_at`` cannot distinguish "rotated
-    away" from "revoked on purpose". Resolving that needs a column (a revocation
-    reason, or a lineage pointer), and needs the repository owner. When it is
-    resolved, **this is the only function that changes** — which is the entire
-    reason it exists as a function rather than as a query written at each call
-    site.
+    A later login on the same device has another family UUID and survives.
+    Clearing old ROTATED reasons prevents logout from raising a theft alert.
     """
-    stamp = now or _now()
-    # A session with no device is still part of a family: the family key is
-    # (user, device), and `None` is a device value like any other. Treating it as
-    # "no family" would leave the successor of a device-less rotation live after
-    # reuse was detected — which is the one outcome SEC-JWT-004 exists to
-    # prevent. The web admin does not reach this path at all: it uses Django
-    # sessions (02 §5.7), so device-less rows here are API sessions that never
-    # supplied a device.
-    if session.device_id is None:
-        family = UserSession.objects.filter(
-            user_id=session.user_id,
-            device_id__isnull=True,
-            revoked_at__isnull=True,
+    with transaction.atomic():
+        _lock_user(session.user_id)
+        return _revoke_rows(
+            UserSession.objects.filter(user_id=session.user_id, family_id=session.family_id),
+            now=now or _now(),
+            reason=reason,
         )
-    else:
-        family = UserSession.objects.filter(
-            user_id=session.user_id,
-            device_id=session.device_id,
-            revoked_at__isnull=True,
-        )
-    return family.update(revoked_at=stamp)
 
 
 def revoke_all_for_user(user: User, *, now: datetime | None = None) -> int:
@@ -373,9 +428,13 @@ def revoke_all_for_user(user: User, *, now: datetime | None = None) -> int:
     alive would leave whoever knew the old password signed in — which is the
     specific thing the requirement prevents.
     """
-    count = UserSession.objects.filter(user=user, revoked_at__isnull=True).update(
-        revoked_at=now or _now()
-    )
+    with transaction.atomic():
+        _lock_user(user.pk)
+        count = _revoke_rows(
+            UserSession.objects.filter(user=user),
+            now=now or _now(),
+            reason=SessionRevocationReason.CREDENTIAL_CHANGED,
+        )
     logger.info(
         "session.all_revoked",
         extra={"user_public_id": str(user.public_id), "sessions_revoked": count},
@@ -390,9 +449,13 @@ def revoke_device_sessions(device: Device, *, now: datetime | None = None) -> in
     losing a phone is not a reason to sign the member out everywhere — the whole
     value of device binding is that the response can be proportionate.
     """
-    count = UserSession.objects.filter(device=device, revoked_at__isnull=True).update(
-        revoked_at=now or _now()
-    )
+    with transaction.atomic():
+        _lock_user(device.user_id)
+        count = _revoke_rows(
+            UserSession.objects.filter(device=device, user_id=device.user_id),
+            now=now or _now(),
+            reason=SessionRevocationReason.DEVICE_REVOKED,
+        )
     logger.info(
         "session.device_revoked",
         extra={"device_id": device.pk, "sessions_revoked": count},

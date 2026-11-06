@@ -1,0 +1,12 @@
+{% extends "admin/browser_base.html" %}
+{% block content %}
+<h1>{{ title }}</h1>
+<p>Use your staff account. You’ll verify an MFA code after your password.</p>
+<form method="post" action="{{ login_url }}" id="login-form">
+  {% csrf_token %}
+  {{ form.non_field_errors }}
+  {% for field in form %}<div class="form-row">{{ field.errors }}{{ field.label_tag }} {{ field }}</div>{% endfor %}
+  <input type="hidden" name="next" value="{{ next }}">
+  <div class="submit-row"><input type="submit" value="Continue"></div>
+</form>
+{% endblock %}

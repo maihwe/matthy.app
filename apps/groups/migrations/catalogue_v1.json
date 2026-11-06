@@ -1,0 +1,924 @@
+{
+  "permissions": [
+    {
+      "code": "groups.view",
+      "name": "View group details",
+      "category": "groups",
+      "is_write": false,
+      "dual_control": false
+    },
+    {
+      "code": "groups.create",
+      "name": "Create a group",
+      "category": "groups",
+      "is_write": true,
+      "dual_control": false
+    },
+    {
+      "code": "groups.update",
+      "name": "Edit name, description, logo, type",
+      "category": "groups",
+      "is_write": true,
+      "dual_control": false
+    },
+    {
+      "code": "groups.archive",
+      "name": "Archive the group",
+      "category": "groups",
+      "is_write": true,
+      "dual_control": false
+    },
+    {
+      "code": "groups.transfer_ownership",
+      "name": "Transfer ownership to another member",
+      "category": "groups",
+      "is_write": true,
+      "dual_control": false
+    },
+    {
+      "code": "groups.manage_settings",
+      "name": "Change group configuration",
+      "category": "groups",
+      "is_write": true,
+      "dual_control": false
+    },
+    {
+      "code": "groups.manage_rules",
+      "name": "Edit written group rules",
+      "category": "groups",
+      "is_write": true,
+      "dual_control": false
+    },
+    {
+      "code": "members.invite",
+      "name": "Invite users to the group",
+      "category": "members",
+      "is_write": true,
+      "dual_control": false
+    },
+    {
+      "code": "members.view",
+      "name": "View the member list",
+      "category": "members",
+      "is_write": false,
+      "dual_control": false
+    },
+    {
+      "code": "members.approve",
+      "name": "Approve a membership application",
+      "category": "members",
+      "is_write": true,
+      "dual_control": false
+    },
+    {
+      "code": "members.suspend",
+      "name": "Suspend a membership",
+      "category": "members",
+      "is_write": true,
+      "dual_control": false
+    },
+    {
+      "code": "members.remove",
+      "name": "Remove a member",
+      "category": "members",
+      "is_write": true,
+      "dual_control": false
+    },
+    {
+      "code": "members.assign_roles",
+      "name": "Assign or revoke group roles",
+      "category": "members",
+      "is_write": true,
+      "dual_control": false
+    },
+    {
+      "code": "members.view_history",
+      "name": "View membership history",
+      "category": "members",
+      "is_write": false,
+      "dual_control": false
+    },
+    {
+      "code": "schemes.view",
+      "name": "View schemes",
+      "category": "schemes",
+      "is_write": false,
+      "dual_control": false
+    },
+    {
+      "code": "schemes.create",
+      "name": "Create a scheme",
+      "category": "schemes",
+      "is_write": true,
+      "dual_control": false
+    },
+    {
+      "code": "schemes.update",
+      "name": "Edit a scheme's configuration",
+      "category": "schemes",
+      "is_write": true,
+      "dual_control": false
+    },
+    {
+      "code": "schemes.close",
+      "name": "Close or archive a scheme",
+      "category": "schemes",
+      "is_write": true,
+      "dual_control": false
+    },
+    {
+      "code": "schemes.manage_members",
+      "name": "Add or remove scheme members",
+      "category": "schemes",
+      "is_write": true,
+      "dual_control": false
+    },
+    {
+      "code": "contributions.record",
+      "name": "Record a contribution (including on behalf of a member)",
+      "category": "contributions",
+      "is_write": true,
+      "dual_control": false
+    },
+    {
+      "code": "contributions.view_own",
+      "name": "View one's own contributions",
+      "category": "contributions",
+      "is_write": false,
+      "dual_control": false
+    },
+    {
+      "code": "contributions.view_group",
+      "name": "View contributions across the group",
+      "category": "contributions",
+      "is_write": false,
+      "dual_control": false
+    },
+    {
+      "code": "contributions.verify",
+      "name": "Verify a recorded contribution",
+      "category": "contributions",
+      "is_write": true,
+      "dual_control": false
+    },
+    {
+      "code": "contributions.reverse",
+      "name": "Reverse a contribution",
+      "category": "contributions",
+      "is_write": true,
+      "dual_control": false
+    },
+    {
+      "code": "contributions.waive",
+      "name": "Waive an expected contribution",
+      "category": "contributions",
+      "is_write": true,
+      "dual_control": false
+    },
+    {
+      "code": "collectors.view",
+      "name": "View collector assignments and performance",
+      "category": "collectors",
+      "is_write": false,
+      "dual_control": false
+    },
+    {
+      "code": "collectors.assign",
+      "name": "Assign a collector to a scheme",
+      "category": "collectors",
+      "is_write": true,
+      "dual_control": false
+    },
+    {
+      "code": "settlements.submit",
+      "name": "Submit a settlement",
+      "category": "settlements",
+      "is_write": true,
+      "dual_control": false
+    },
+    {
+      "code": "settlements.view_own",
+      "name": "View one's own settlement history",
+      "category": "settlements",
+      "is_write": false,
+      "dual_control": false
+    },
+    {
+      "code": "settlements.view_group",
+      "name": "View settlements across the group",
+      "category": "settlements",
+      "is_write": false,
+      "dual_control": false
+    },
+    {
+      "code": "settlements.verify",
+      "name": "Verify a submitted settlement",
+      "category": "settlements",
+      "is_write": true,
+      "dual_control": false
+    },
+    {
+      "code": "settlements.dispute",
+      "name": "Dispute a settlement",
+      "category": "settlements",
+      "is_write": true,
+      "dual_control": false
+    },
+    {
+      "code": "settlements.resolve_variance",
+      "name": "Resolve a flagged variance with explanation",
+      "category": "settlements",
+      "is_write": true,
+      "dual_control": false
+    },
+    {
+      "code": "ledger.view_own",
+      "name": "View one's own ledger position",
+      "category": "ledger",
+      "is_write": false,
+      "dual_control": false
+    },
+    {
+      "code": "ledger.view_group",
+      "name": "View the group's ledger",
+      "category": "ledger",
+      "is_write": false,
+      "dual_control": false
+    },
+    {
+      "code": "ledger.view_platform",
+      "name": "View platform-level totals",
+      "category": "ledger",
+      "is_write": false,
+      "dual_control": false
+    },
+    {
+      "code": "ledger.reverse_transaction",
+      "name": "Post a reversing transaction",
+      "category": "ledger",
+      "is_write": true,
+      "dual_control": false
+    },
+    {
+      "code": "ledger.post_adjustment",
+      "name": "Post a manual adjusting entry — **dual control (§6.5)**",
+      "category": "ledger",
+      "is_write": true,
+      "dual_control": true
+    },
+    {
+      "code": "loans.apply",
+      "name": "Apply for a loan",
+      "category": "loans",
+      "is_write": true,
+      "dual_control": false
+    },
+    {
+      "code": "loans.view_own",
+      "name": "View one's own loans",
+      "category": "loans",
+      "is_write": false,
+      "dual_control": false
+    },
+    {
+      "code": "loans.view_group",
+      "name": "View loans across the group",
+      "category": "loans",
+      "is_write": false,
+      "dual_control": false
+    },
+    {
+      "code": "loans.review",
+      "name": "Review an application and recommend",
+      "category": "loans",
+      "is_write": true,
+      "dual_control": false
+    },
+    {
+      "code": "loans.approve",
+      "name": "Approve a loan",
+      "category": "loans",
+      "is_write": true,
+      "dual_control": false
+    },
+    {
+      "code": "loans.reject",
+      "name": "Reject a loan",
+      "category": "loans",
+      "is_write": true,
+      "dual_control": false
+    },
+    {
+      "code": "loans.configure_rules",
+      "name": "Configure the group's eligibility and lending rules",
+      "category": "loans",
+      "is_write": true,
+      "dual_control": false
+    },
+    {
+      "code": "guarantors.respond",
+      "name": "Accept or decline a guarantor request directed at oneself",
+      "category": "guarantors",
+      "is_write": true,
+      "dual_control": false
+    },
+    {
+      "code": "guarantors.view",
+      "name": "View guarantor records for the group",
+      "category": "guarantors",
+      "is_write": false,
+      "dual_control": false
+    },
+    {
+      "code": "disbursements.view",
+      "name": "View disbursements",
+      "category": "disbursements",
+      "is_write": false,
+      "dual_control": false
+    },
+    {
+      "code": "disbursements.request",
+      "name": "Request a disbursement",
+      "category": "disbursements",
+      "is_write": true,
+      "dual_control": false
+    },
+    {
+      "code": "disbursements.review",
+      "name": "Review a disbursement request",
+      "category": "disbursements",
+      "is_write": true,
+      "dual_control": false
+    },
+    {
+      "code": "disbursements.approve",
+      "name": "Approve a disbursement",
+      "category": "disbursements",
+      "is_write": true,
+      "dual_control": false
+    },
+    {
+      "code": "disbursements.process_payment",
+      "name": "Execute the payment leg",
+      "category": "disbursements",
+      "is_write": true,
+      "dual_control": false
+    },
+    {
+      "code": "disbursements.verify",
+      "name": "Verify completion",
+      "category": "disbursements",
+      "is_write": true,
+      "dual_control": false
+    },
+    {
+      "code": "reports.view_own",
+      "name": "View one's own reports",
+      "category": "reports",
+      "is_write": false,
+      "dual_control": false
+    },
+    {
+      "code": "reports.view_group",
+      "name": "View group reports",
+      "category": "reports",
+      "is_write": false,
+      "dual_control": false
+    },
+    {
+      "code": "reports.view_platform",
+      "name": "View platform-wide reports",
+      "category": "reports",
+      "is_write": false,
+      "dual_control": false
+    },
+    {
+      "code": "reports.export",
+      "name": "Export report data",
+      "category": "reports",
+      "is_write": false,
+      "dual_control": false
+    },
+    {
+      "code": "communications.message_members",
+      "name": "Message members within one's groups",
+      "category": "communications",
+      "is_write": true,
+      "dual_control": false
+    },
+    {
+      "code": "communications.message_group",
+      "name": "Post a group announcement",
+      "category": "communications",
+      "is_write": true,
+      "dual_control": false
+    },
+    {
+      "code": "communications.bulk_send",
+      "name": "Send a bulk campaign",
+      "category": "communications",
+      "is_write": true,
+      "dual_control": false
+    },
+    {
+      "code": "communications.manage_templates",
+      "name": "Manage notification and message templates",
+      "category": "communications",
+      "is_write": true,
+      "dual_control": false
+    },
+    {
+      "code": "communications.view_history",
+      "name": "View communication history",
+      "category": "communications",
+      "is_write": false,
+      "dual_control": false
+    },
+    {
+      "code": "audit.view_group",
+      "name": "View the group's audit log",
+      "category": "audit",
+      "is_write": false,
+      "dual_control": false
+    },
+    {
+      "code": "audit.view_platform",
+      "name": "View the platform audit log",
+      "category": "audit",
+      "is_write": false,
+      "dual_control": false
+    },
+    {
+      "code": "platform.manage_users",
+      "name": "Manage platform user accounts",
+      "category": "platform",
+      "is_write": true,
+      "dual_control": false
+    },
+    {
+      "code": "platform.suspend_account",
+      "name": "Suspend or reinstate an account",
+      "category": "platform",
+      "is_write": true,
+      "dual_control": false
+    },
+    {
+      "code": "platform.manage_locations",
+      "name": "Manage the location tree",
+      "category": "platform",
+      "is_write": true,
+      "dual_control": false
+    },
+    {
+      "code": "platform.manage_group_types",
+      "name": "Manage group types and role templates",
+      "category": "platform",
+      "is_write": true,
+      "dual_control": false
+    },
+    {
+      "code": "platform.view_health",
+      "name": "View system health and job status",
+      "category": "platform",
+      "is_write": false,
+      "dual_control": false
+    },
+    {
+      "code": "settings.manage_platform",
+      "name": "Change platform settings",
+      "category": "settings",
+      "is_write": true,
+      "dual_control": false
+    },
+    {
+      "code": "settings.manage_group",
+      "name": "Change group settings",
+      "category": "settings",
+      "is_write": true,
+      "dual_control": false
+    }
+  ],
+  "roles": [
+    {
+      "code": "SUPER_ADMIN",
+      "name": "Super Admin",
+      "scope": "PLATFORM",
+      "policies": {
+        "platform.manage_users": "required",
+        "platform.suspend_account": "required",
+        "platform.manage_locations": "required",
+        "platform.manage_group_types": "required",
+        "platform.view_health": "required",
+        "settings.manage_platform": "required",
+        "ledger.view_platform": "required",
+        "ledger.post_adjustment": "dual",
+        "reports.view_platform": "required",
+        "audit.view_platform": "required",
+        "groups.view": "required",
+        "groups.archive": "required",
+        "members.view": "required",
+        "members.suspend": "required",
+        "communications.bulk_send": "required",
+        "communications.manage_templates": "required"
+      }
+    },
+    {
+      "code": "PLATFORM_ADMIN",
+      "name": "Platform Admin",
+      "scope": "PLATFORM",
+      "policies": {
+        "platform.manage_users": "required",
+        "platform.suspend_account": "required",
+        "platform.manage_locations": "required",
+        "platform.manage_group_types": "required",
+        "platform.view_health": "required",
+        "settings.manage_platform": "optional",
+        "ledger.view_platform": "required",
+        "reports.view_platform": "required",
+        "audit.view_platform": "required",
+        "groups.view": "required",
+        "groups.archive": "required",
+        "members.view": "required",
+        "members.suspend": "required",
+        "communications.bulk_send": "required",
+        "communications.manage_templates": "required"
+      }
+    },
+    {
+      "code": "SUPPORT_ADMIN",
+      "name": "Support Admin",
+      "scope": "PLATFORM",
+      "policies": {
+        "platform.manage_users": "optional",
+        "platform.suspend_account": "optional",
+        "platform.manage_locations": "optional",
+        "platform.view_health": "required",
+        "reports.view_platform": "optional",
+        "audit.view_platform": "optional",
+        "groups.view": "required",
+        "members.view": "required",
+        "members.suspend": "optional"
+      }
+    },
+    {
+      "code": "GROUP_OWNER",
+      "name": "Group Owner",
+      "scope": "GROUP",
+      "policies": {
+        "groups.view": "required",
+        "groups.update": "required",
+        "groups.archive": "required",
+        "groups.transfer_ownership": "required",
+        "groups.manage_settings": "required",
+        "groups.manage_rules": "required",
+        "members.invite": "required",
+        "members.view": "required",
+        "members.approve": "required",
+        "members.suspend": "required",
+        "members.remove": "required",
+        "members.assign_roles": "required",
+        "members.view_history": "required",
+        "schemes.view": "required",
+        "schemes.create": "required",
+        "schemes.update": "required",
+        "schemes.close": "required",
+        "schemes.manage_members": "required",
+        "contributions.record": "required",
+        "contributions.view_own": "required",
+        "contributions.view_group": "required",
+        "contributions.verify": "required",
+        "contributions.reverse": "required",
+        "contributions.waive": "required",
+        "collectors.view": "required",
+        "collectors.assign": "required",
+        "settlements.view_group": "required",
+        "settlements.verify": "required",
+        "settlements.dispute": "required",
+        "settlements.resolve_variance": "required",
+        "ledger.view_own": "required",
+        "ledger.view_group": "required",
+        "ledger.reverse_transaction": "required",
+        "ledger.post_adjustment": "dual",
+        "loans.apply": "required",
+        "loans.view_own": "required",
+        "loans.view_group": "required",
+        "loans.review": "required",
+        "loans.approve": "required",
+        "loans.reject": "required",
+        "loans.configure_rules": "required",
+        "guarantors.respond": "required",
+        "guarantors.view": "required",
+        "disbursements.view": "required",
+        "disbursements.request": "required",
+        "disbursements.review": "required",
+        "disbursements.approve": "required",
+        "disbursements.process_payment": "required",
+        "disbursements.verify": "required",
+        "reports.view_own": "required",
+        "reports.view_group": "required",
+        "reports.export": "required",
+        "communications.message_members": "required",
+        "communications.message_group": "required",
+        "communications.bulk_send": "required",
+        "communications.view_history": "required",
+        "audit.view_group": "required",
+        "settings.manage_group": "required"
+      }
+    },
+    {
+      "code": "CHAIRMAN",
+      "name": "Chairman",
+      "scope": "GROUP",
+      "policies": {
+        "groups.view": "required",
+        "groups.update": "required",
+        "groups.archive": "optional",
+        "groups.manage_settings": "optional",
+        "groups.manage_rules": "required",
+        "members.invite": "required",
+        "members.view": "required",
+        "members.approve": "required",
+        "members.suspend": "required",
+        "members.remove": "required",
+        "members.assign_roles": "required",
+        "members.view_history": "required",
+        "schemes.view": "required",
+        "schemes.create": "required",
+        "schemes.update": "required",
+        "schemes.close": "required",
+        "schemes.manage_members": "required",
+        "contributions.record": "required",
+        "contributions.view_own": "required",
+        "contributions.view_group": "required",
+        "contributions.verify": "required",
+        "contributions.reverse": "optional",
+        "contributions.waive": "optional",
+        "collectors.view": "required",
+        "collectors.assign": "required",
+        "settlements.view_group": "required",
+        "settlements.verify": "required",
+        "settlements.dispute": "required",
+        "settlements.resolve_variance": "required",
+        "ledger.view_own": "required",
+        "ledger.view_group": "required",
+        "ledger.reverse_transaction": "optional",
+        "ledger.post_adjustment": "dual",
+        "loans.apply": "required",
+        "loans.view_own": "required",
+        "loans.view_group": "required",
+        "loans.review": "required",
+        "loans.approve": "required",
+        "loans.reject": "required",
+        "loans.configure_rules": "required",
+        "guarantors.respond": "required",
+        "guarantors.view": "required",
+        "disbursements.view": "required",
+        "disbursements.request": "required",
+        "disbursements.review": "required",
+        "disbursements.approve": "required",
+        "disbursements.process_payment": "optional",
+        "disbursements.verify": "required",
+        "reports.view_own": "required",
+        "reports.view_group": "required",
+        "reports.export": "required",
+        "communications.message_members": "required",
+        "communications.message_group": "required",
+        "communications.bulk_send": "required",
+        "communications.view_history": "required",
+        "audit.view_group": "required",
+        "settings.manage_group": "optional"
+      }
+    },
+    {
+      "code": "SECRETARY",
+      "name": "Secretary",
+      "scope": "GROUP",
+      "policies": {
+        "groups.view": "required",
+        "groups.update": "optional",
+        "groups.manage_rules": "optional",
+        "members.invite": "required",
+        "members.view": "required",
+        "members.approve": "required",
+        "members.suspend": "optional",
+        "members.remove": "optional",
+        "members.assign_roles": "optional",
+        "members.view_history": "required",
+        "schemes.view": "required",
+        "schemes.create": "optional",
+        "schemes.manage_members": "required",
+        "contributions.record": "optional",
+        "contributions.view_own": "required",
+        "contributions.view_group": "required",
+        "collectors.view": "required",
+        "settlements.view_group": "required",
+        "ledger.view_own": "required",
+        "ledger.view_group": "optional",
+        "loans.apply": "required",
+        "loans.view_own": "required",
+        "loans.view_group": "required",
+        "guarantors.respond": "required",
+        "guarantors.view": "required",
+        "disbursements.view": "required",
+        "disbursements.request": "optional",
+        "reports.view_own": "required",
+        "reports.view_group": "required",
+        "reports.export": "optional",
+        "communications.message_members": "required",
+        "communications.message_group": "required",
+        "communications.bulk_send": "optional",
+        "communications.view_history": "required",
+        "audit.view_group": "optional"
+      }
+    },
+    {
+      "code": "TREASURER",
+      "name": "Treasurer",
+      "scope": "GROUP",
+      "policies": {
+        "groups.view": "required",
+        "members.invite": "optional",
+        "members.view": "required",
+        "members.view_history": "optional",
+        "schemes.view": "required",
+        "schemes.create": "optional",
+        "schemes.update": "optional",
+        "schemes.manage_members": "optional",
+        "contributions.record": "required",
+        "contributions.view_own": "required",
+        "contributions.view_group": "required",
+        "contributions.verify": "required",
+        "contributions.reverse": "required",
+        "contributions.waive": "optional",
+        "collectors.view": "required",
+        "collectors.assign": "optional",
+        "settlements.view_group": "required",
+        "settlements.verify": "required",
+        "settlements.dispute": "required",
+        "settlements.resolve_variance": "required",
+        "ledger.view_own": "required",
+        "ledger.view_group": "required",
+        "ledger.reverse_transaction": "required",
+        "ledger.post_adjustment": "dual",
+        "loans.apply": "required",
+        "loans.view_own": "required",
+        "loans.view_group": "required",
+        "loans.review": "optional",
+        "loans.approve": "optional",
+        "loans.reject": "optional",
+        "guarantors.respond": "required",
+        "guarantors.view": "required",
+        "disbursements.view": "required",
+        "disbursements.request": "required",
+        "disbursements.review": "required",
+        "disbursements.approve": "required",
+        "disbursements.process_payment": "required",
+        "disbursements.verify": "required",
+        "reports.view_own": "required",
+        "reports.view_group": "required",
+        "reports.export": "required",
+        "communications.message_members": "required",
+        "communications.message_group": "required",
+        "communications.bulk_send": "optional",
+        "communications.view_history": "required",
+        "audit.view_group": "optional"
+      }
+    },
+    {
+      "code": "COLLECTOR",
+      "name": "Collector",
+      "scope": "GROUP",
+      "policies": {
+        "groups.view": "required",
+        "members.invite": "optional",
+        "members.view": "required",
+        "schemes.view": "required",
+        "contributions.record": "required",
+        "contributions.view_own": "required",
+        "contributions.view_group": "optional",
+        "collectors.view": "optional",
+        "settlements.submit": "required",
+        "settlements.view_own": "required",
+        "settlements.dispute": "required",
+        "ledger.view_own": "required",
+        "loans.apply": "required",
+        "loans.view_own": "required",
+        "guarantors.respond": "required",
+        "reports.view_own": "required",
+        "communications.message_members": "required",
+        "communications.view_history": "optional"
+      }
+    },
+    {
+      "code": "LOAN_OFFICER",
+      "name": "Loan Officer",
+      "scope": "GROUP",
+      "policies": {
+        "groups.view": "required",
+        "members.view": "required",
+        "schemes.view": "required",
+        "contributions.view_own": "required",
+        "contributions.view_group": "required",
+        "ledger.view_own": "required",
+        "ledger.view_group": "optional",
+        "loans.apply": "required",
+        "loans.view_own": "required",
+        "loans.view_group": "required",
+        "loans.review": "required",
+        "loans.approve": "optional",
+        "loans.reject": "required",
+        "loans.configure_rules": "optional",
+        "guarantors.respond": "required",
+        "guarantors.view": "required",
+        "disbursements.view": "optional",
+        "disbursements.request": "optional",
+        "disbursements.review": "optional",
+        "reports.view_own": "required",
+        "reports.view_group": "required",
+        "reports.export": "optional"
+      }
+    },
+    {
+      "code": "AUDITOR",
+      "name": "Auditor",
+      "scope": "GROUP",
+      "policies": {
+        "groups.view": "required",
+        "members.view": "required",
+        "members.view_history": "required",
+        "schemes.view": "required",
+        "contributions.view_own": "required",
+        "contributions.view_group": "required",
+        "collectors.view": "required",
+        "settlements.view_group": "required",
+        "ledger.view_own": "required",
+        "ledger.view_group": "required",
+        "loans.view_own": "required",
+        "loans.view_group": "required",
+        "guarantors.view": "required",
+        "disbursements.view": "required",
+        "reports.view_own": "required",
+        "reports.view_group": "required",
+        "reports.export": "required",
+        "communications.view_history": "required",
+        "audit.view_group": "required"
+      }
+    },
+    {
+      "code": "MEMBER",
+      "name": "Member",
+      "scope": "GROUP",
+      "policies": {
+        "groups.view": "required",
+        "members.view": "required",
+        "schemes.view": "required",
+        "contributions.view_own": "required",
+        "ledger.view_own": "required",
+        "loans.apply": "required",
+        "loans.view_own": "required",
+        "guarantors.respond": "required",
+        "reports.view_own": "required"
+      }
+    }
+  ],
+  "group_types": {
+    "DAILY_CONTRIBUTION": [
+      "GROUP_OWNER",
+      "COLLECTOR",
+      "MEMBER"
+    ],
+    "MONTHLY_SAVINGS": [
+      "GROUP_OWNER",
+      "TREASURER",
+      "MEMBER"
+    ],
+    "TRADERS": [
+      "GROUP_OWNER",
+      "COLLECTOR",
+      "MEMBER"
+    ],
+    "ASSOCIATION": [
+      "GROUP_OWNER",
+      "CHAIRMAN",
+      "SECRETARY",
+      "TREASURER",
+      "COLLECTOR",
+      "AUDITOR",
+      "MEMBER"
+    ],
+    "COOPERATIVE": [
+      "GROUP_OWNER",
+      "CHAIRMAN",
+      "SECRETARY",
+      "TREASURER",
+      "LOAN_OFFICER",
+      "AUDITOR",
+      "MEMBER"
+    ],
+    "WELFARE": [
+      "GROUP_OWNER",
+      "TREASURER",
+      "MEMBER"
+    ]
+  }
+}

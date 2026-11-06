@@ -27,6 +27,8 @@ __all__ = [
     "AccountClosed",
     "AccountError",
     "AccountSuspended",
+    "AuthenticationUnavailable",
+    "InvalidAccessToken",
     "InvalidCredentials",
     "InvalidOTP",
     "InvalidPhoneNumber",
@@ -226,6 +228,20 @@ class InvalidRefreshToken(AccountError):
 
     code: ClassVar[str] = "invalid_refresh_token"
     message: ClassVar[str] = "This session has ended. Sign in again."
+
+
+class InvalidAccessToken(AccountError):
+    """The signature, claims or backing session are not valid."""
+
+    code: ClassVar[str] = "invalid_access_token"
+    message: ClassVar[str] = "This session has ended. Sign in again."
+
+
+class AuthenticationUnavailable(AccountError):
+    """Authentication cannot proceed with its required security controls."""
+
+    code: ClassVar[str] = "service_unavailable"
+    message: ClassVar[str] = "Authentication is temporarily unavailable."
 
 
 class RefreshTokenReuse(InvalidRefreshToken):

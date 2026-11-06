@@ -2,8 +2,8 @@
 
 Locations are administratively managed (FR-LOC-005) — ordinary members cannot
 create a top-tier place — and the admin is that management surface in Phase 1.
-The write API arrives with ``platform.manage_locations`` in S5, so this is the
-only screen that writes the tree today.
+S5 wraps these registrations with read-only, ``platform.manage_locations``-guarded
+inspection in L1. Audited mutations now use the location API/services.
 
 The admin form calls ``Location.clean()``, which is where the tree rules are
 expressed legibly. The database trigger still refuses an inconsistent row

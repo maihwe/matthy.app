@@ -20,11 +20,15 @@ financial event ([06 §4.13](docs/06_FINANCIAL_RULES.md)).
 and states the slice order (S0 scaffold → S1 `accounts` → S2 `audit` → S3 `locations` →
 S4 auth API → S5 `groups`).
 
-Phase 1 began with **slice S0** — repository skeleton, settings package, API conventions,
-health checks, Docker Compose, and the ten CI gates. S0 is written but **not yet
-verified**: no toolchain has run against it. Until `scripts/ci.sh` passes locally and in
-CI, treat every S0 file as unexecuted code. The blocking items are listed in
-[`docs/PHASE_1_PLAN.md` §6](docs/PHASE_1_PLAN.md).
+The foundation includes accounts, audit, locations, groups and authentication:
+registration, phone and email verification, login, token refresh, logout, password recovery
+and changes, transaction PIN setup/changes, MFA enrollment/challenges and recovery
+codes, session management, device management and browser admin MFA with staff enrollment.
+[`docs/AUTHENTICATION.md`](docs/AUTHENTICATION.md) documents setup, token rotation,
+and the remaining authentication work. [Groups and permissions](docs/GROUPS.md)
+covers group setup, invitations, membership, bounded role configuration, platform
+administration and role-triggered MFA/session revocation. Local verification uses
+real PostgreSQL 16 and Redis; hosted CI and production delivery remain separate milestones.
 
 The product brand is **IHWEZA** — *Together We Move.* The repository, Python package and
 Django project name remain `matthy.app` / `config`.

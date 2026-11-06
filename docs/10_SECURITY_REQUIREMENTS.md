@@ -64,6 +64,14 @@ rather than merely compliant with it.
 | SEC-MFA-004 | **MFA is mandatory for `SUPER_ADMIN`, `PLATFORM_ADMIN`, `TREASURER`, `GROUP_OWNER`, and `CHAIRMAN`** — the roles that can move money or change permissions. Optional for `MEMBER`. |
 | SEC-MFA-005 | SMS is the weaker factor and is offered as a fallback, not as the recommended one. |
 
+S5 enforces SEC-MFA-004 using current active group template assignments and
+explicit platform assignments. Custom roles inherit their template's MFA
+requirement. Authorization changes increment database versions and revoke bearer
+and browser sessions; pending MFA proofs issued before the change cannot finish.
+Group permission resolution checks current account state, active scoped membership,
+auditor restrictions and versioned grants through one resolver. Database guards
+protect permission bounds, initial bootstrap, owner continuity and history.
+
 SEC-MFA-004 is the requirement most likely to be argued down for convenience, and
 should not be. An account that can approve a disbursement is an account worth stealing.
 
@@ -114,6 +122,13 @@ refresh token from a persistent compromise into a detected one.
 | SEC-SES-005 | `SESSION_COOKIE_NAME` is set to a non-default value, so a cookie collision with another Django app on the same domain cannot cause session confusion. |
 | SEC-SES-006 | Sessions are stored server-side; the cookie carries only the key. |
 
+Implementation: the admin password step creates only an anonymous, five-minute
+MFA challenge bound to its Django session key. MFA completion establishes a
+`BROWSER` session row; middleware checks its revocation, device, credential/role
+state and idle/absolute deadlines on every request. Browser rows cannot authorize
+bearer tokens or refresh. Password-only privileged cookies are denied. Staff
+enrollment confirms a code and displays recovery codes once before fresh sign-in.
+
 ### 3.3 Session visibility
 
 A user can list and revoke their active sessions and devices (FR-AUTH-011/012), each
@@ -148,7 +163,7 @@ Detail is in 05; the security-relevant requirements:
 | SEC-DATA-002 | Database volumes encrypted at rest; backups encrypted with a key distinct from the database's. |
 | SEC-DATA-003 | Object storage for documents and images is private by default; access is via short-lived signed URLs, never public buckets. |
 | SEC-DATA-004 | Sensitive fields where the platform has legitimate need for the plaintext (e.g. next-of-kin phone) are encrypted at the application layer with a managed key. |
-| SEC-DATA-005 | **Credentials are never encrypted — they are hashed.** Encryption implies a reversible operation and a key that can leak. |
+| SEC-DATA-005 | Passwords, PINs, OTPs and recovery codes are stored hashed. **TOTP seeds are the explicit exception:** RFC 6238 requires the shared secret for computation, so active and pending seeds use authenticated application-layer encryption with a separate managed keyring. Seeds never enter JWTs, logs or audit records. |
 
 ### 5.2 What never leaves the API
 
@@ -225,6 +240,18 @@ a variance explanation quoting a member's message, a group's rules page.
 | Scope | Suggested default | Rationale |
 |---|---|---|
 | Login | 10 / 15 min per IP+account | Credential stuffing |
+| Login across accounts | 50 / 15 min per IP | Password spraying across accounts |
+| Token refresh | 120 / min per IP | Bound unauthenticated token lookups |
+| Registration / phone-code request | 50 / hour per IP | Bound account creation and resend load |
+| Phone verification | 120 / min per IP | Bound lookups; each code still permits only 3 guesses |
+| Email verification request | 50 / hour per IP; 3 / hour per user and destination | Bound authenticated resends and mailbox abuse |
+| Email verification confirmation | 120 / min per IP | Bound public proof lookups; high-entropy tokens expire after 24 hours |
+| Password reset request | 50 / hour per IP | Bound recovery traffic across accounts |
+| Password reset confirmation | 120 / min per IP | Bound proof lookups before credential hashing |
+| Password change / initial PIN setup | 5 / 15 min per user | Bound current-password reauthentication |
+| MFA setup / disable | 5 / 15 min per user | Bound factor enrollment and password reauthentication |
+| MFA verification | 10 / 15 min per user | Shared across challenges, confirmation and disable; challenges and enrollment each permit only 3 guesses |
+| MFA challenge / setup lookup | 120 / min per IP | Bound public proof lookups; SMS also uses destination issuance limits |
 | OTP issue | 3 / 15 min per destination | SMS-billing abuse |
 | OTP verify | 5 / 15 min per code | Brute force |
 | PIN entry | 5 / 15 min per user | 4-digit space is small |

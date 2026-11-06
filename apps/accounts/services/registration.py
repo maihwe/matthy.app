@@ -39,10 +39,9 @@ would have to write a placeholder around such a constraint (see C4). An empty
 name is refused by the serializer, and if that check ever moved, the outcome is a
 member row with a blank name — visible and correctable — rather than a 500.
 
-**Rate limiting is not applied here.** §6.4's table has no scope for account
-creation, and inventing one would be inventing a control 10 does not specify;
-the gap is recorded as C8. What *is* applied is the OTP-issue limit that
-``otp.issue()`` enforces, which bounds how fast any one number can be messaged.
+Per-IP registration limiting is applied by ``onboarding.register()`` before
+database work. Destination OTP budgets are applied here to new, unverified and
+already-verified accounts alike, so throttling does not disclose account state.
 """
 
 from __future__ import annotations
@@ -76,12 +75,15 @@ class Registration:
     or turned into a different status code: doing so converts this endpoint into
     the enumeration oracle S10 forbids.
 
+    ``user`` is ``None`` when the supplied email is unavailable and no account
+    was created. This conflict follows the same generic public response.
+
     ``otp`` is ``None`` when no message was sent. The ``IssuedOTP`` it holds
     redacts the code in its ``repr``; delivering the code is the caller's job,
     because Phase 1 has no notification service for it to call.
     """
 
-    user: User
+    user: User | None
     already_registered: bool
     otp: IssuedOTP | None
 
@@ -119,7 +121,16 @@ def register(
 
     try:
         created = _create(proposed, password)
-    except IntegrityError:
+    except IntegrityError as exc:
+        constraint = getattr(getattr(exc.__cause__, "diag", None), "constraint_name", None)
+        if constraint == "users_email_lower_uniq":
+            # Public registration must not disclose who already holds an
+            # address, or turn an email conflict into a missing-phone 500.
+            otp_service.reserve_issuance(normalised)
+            logger.info("registration.email_unavailable")
+            return Registration(user=None, already_registered=True, otp=None)
+        if constraint != "users_phone_key":
+            raise
         # Two registrations for one number arriving together, or a number
         # registered between the query above and this insert. The UNIQUE
         # constraint is what actually decides who owns the number; the loser
@@ -197,6 +208,8 @@ def _existing(user: User, normalised: str) -> Registration:
     places that has to be re-read.
     """
     if user.is_phone_verified:
+        # Public registration must consume the same destination budget on every path.
+        otp_service.reserve_issuance(normalised)
         logger.info(
             "registration.existing_verified",
             extra={"user_public_id": str(user.public_id)},
