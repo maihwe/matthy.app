@@ -104,6 +104,13 @@ identity are set in one place before anything renders them.
 
 ### Current implementation update (2026-11-06)
 
+For the latest saved milestone, GitHub/CI/protection state and next starting point,
+read [PROJECT_HANDOVER.md](PROJECT_HANDOVER.md). S4/S5 merged through
+[PR #2](https://github.com/maihwe/matthy.app/pull/2); all ten hosted gates passed on
+`main` commit `733691a730e61dce84aa64ff6640bfa83f373293`. `develop` was created at that
+baseline and both branches now have active protection. Staging deployment and the
+remaining authentication/product work are still open.
+
 Accounts, audit and locations now have migrations and executable tests. The first
 S4 slice implements login, refresh, logout, session lists/revocation and device
 lists/revocation. See [AUTHENTICATION.md](AUTHENTICATION.md) for setup and remaining
