@@ -215,6 +215,8 @@ jobs:
       - run: pip install -r requirements/dev.txt
       # S14: fails the build on high-severity findings.
       - run: pip-audit --strict --vulnerability-service osv
+      - name: Audit locked production dependencies
+        run: pip-audit --strict --vulnerability-service osv -r requirements/lock/prod.txt
 
   # ── Gate 10 — OpenAPI schema ──────────────────────────────────────────────
   openapi:

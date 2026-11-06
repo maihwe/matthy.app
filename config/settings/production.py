@@ -38,6 +38,18 @@ if not ALLOWED_HOSTS:  # pragma: no cover - boot-time guard
 
 CSRF_TRUSTED_ORIGINS = env_list("DJANGO_CSRF_TRUSTED_ORIGINS")
 
+# Preserve correlation-ID middleware immediately after SecurityMiddleware.
+MIDDLEWARE = [
+    *MIDDLEWARE[:2],  # noqa: F405
+    "whitenoise.middleware.WhiteNoiseMiddleware",
+    *MIDDLEWARE[2:],  # noqa: F405
+]
+STATIC_URL = "/static/"
+STORAGES = {
+    "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+    "staticfiles": {"BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"},
+}
+
 # ---------------------------------------------------------------------------
 # Transport security — SEC-DATA-001, SEC-HDR-001
 # ---------------------------------------------------------------------------

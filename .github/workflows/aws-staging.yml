@@ -1,0 +1,118 @@
+name: AWS staging
+run-name: AWS staging ${{ inputs.action }} — ${{ github.sha }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: Publish image first; release only after infrastructure, secrets and DNS are configured.
+        required: true
+        default: publish
+        type: choice
+        options: [publish, release]
+
+concurrency:
+  group: aws-staging
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    name: Publish or release staging
+    if: github.ref == 'refs/heads/develop'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    environment: staging
+    permissions:
+      contents: read
+      checks: read
+      id-token: write
+    env:
+      AWS_REGION: ${{ vars.AWS_REGION }}
+      AWS_ACCOUNT_ID: ${{ vars.AWS_ACCOUNT_ID }}
+      AWS_ROLE_ARN: ${{ vars.AWS_ROLE_ARN }}
+      ECR_REPOSITORY_URI: ${{ vars.ECR_REPOSITORY_URI }}
+      GH_TOKEN: ${{ github.token }}
+      AWS_PAGER: ''
+    steps:
+      - uses: actions/checkout@v4
+      - name: Require configured environment and successful checks on this revision
+        shell: bash
+        run: |
+          test -n "$AWS_REGION"
+          test -n "$AWS_ROLE_ARN"
+          test -n "$ECR_REPOSITORY_URI"
+          [[ "$AWS_ACCOUNT_ID" =~ ^[0-9]{12}$ ]]
+          [[ "$AWS_ROLE_ARN" == "arn:aws:iam::${AWS_ACCOUNT_ID}:role/ihweza-staging-github" ]]
+          [[ "$ECR_REPOSITORY_URI" == "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/ihweza-staging" ]]
+          gh api "repos/${GITHUB_REPOSITORY}/commits/${GITHUB_SHA}/check-runs?filter=latest&per_page=100" \
+            > "${RUNNER_TEMP}/staging-checks.json"
+          jq -e --arg sha "$GITHUB_SHA" '
+            .check_runs as $runs
+            | ["1-2. Format & lint", "3. Types", "4. Import contracts", "5. Migrations",
+               "6-7. Tests & coverage", "8. Secret scan", "9. Dependency audit",
+               "10. OpenAPI schema", "Staging image", "AWS templates"]
+            | all(.[]; . as $name | any($runs[];
+                .name == $name and .head_sha == $sha and .app.id == 15368
+                and .status == "completed" and .conclusion == "success"))
+          ' "${RUNNER_TEMP}/staging-checks.json" >/dev/null
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+          role-session-name: ihweza-staging-${{ github.run_id }}
+      - name: Verify the connected AWS account
+        run: test "$(aws sts get-caller-identity --query Account --output text)" = "$AWS_ACCOUNT_ID"
+      - uses: aws-actions/amazon-ecr-login@v2
+      - name: Check for an already-published immutable revision
+        id: existing
+        shell: bash
+        run: |
+          if aws ecr describe-images --repository-name ihweza-staging \
+              --image-ids "imageTag=${GITHUB_SHA}" --output json \
+              > "${RUNNER_TEMP}/existing-image.json" 2> "${RUNNER_TEMP}/ecr-error.txt"; then
+            echo 'exists=true' >> "$GITHUB_OUTPUT"
+          elif rg -q ImageNotFoundException "${RUNNER_TEMP}/ecr-error.txt"; then
+            echo 'exists=false' >> "$GITHUB_OUTPUT"
+          else
+            cat "${RUNNER_TEMP}/ecr-error.txt" >&2
+            exit 1
+          fi
+      - uses: docker/setup-buildx-action@v3
+        if: steps.existing.outputs.exists == 'false'
+      - name: Publish production image
+        if: steps.existing.outputs.exists == 'false'
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: ${{ env.ECR_REPOSITORY_URI }}:${{ github.sha }}
+          provenance: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: Resolve immutable image digest and verify image scan
+        id: image
+        shell: bash
+        run: |
+          digest="$(aws ecr describe-images --repository-name ihweza-staging \
+            --image-ids "imageTag=${GITHUB_SHA}" --query 'imageDetails[0].imageDigest' --output text)"
+          [[ "$digest" =~ ^sha256:[a-f0-9]{64}$ ]]
+          aws ecr wait image-scan-complete --repository-name ihweza-staging --image-id "imageDigest=$digest"
+          aws ecr describe-image-scan-findings --repository-name ihweza-staging \
+            --image-id "imageDigest=$digest" > "${RUNNER_TEMP}/staging-image-scan.json"
+          jq -e '.imageScanStatus.status == "COMPLETE"
+            and (.imageScanFindings.findingSeverityCounts.HIGH // 0) == 0
+            and (.imageScanFindings.findingSeverityCounts.CRITICAL // 0) == 0' \
+            "${RUNNER_TEMP}/staging-image-scan.json" >/dev/null
+          echo "uri=${ECR_REPOSITORY_URI}@${digest}" >> "$GITHUB_OUTPUT"
+          printf 'Published revision: `%s`\n\nImage: `%s@%s`\n' \
+            "$GITHUB_SHA" "$ECR_REPOSITORY_URI" "$digest" >> "$GITHUB_STEP_SUMMARY"
+      - name: Apply migrations, deploy, and verify HTTPS
+        if: inputs.action == 'release'
+        env:
+          STAGING_IMAGE: ${{ steps.image.outputs.uri }}
+        run: bash scripts/aws_staging_release.sh "$STAGING_IMAGE"
