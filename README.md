@@ -35,6 +35,9 @@ real PostgreSQL 16 and Redis. All ten gates also passed on GitHub after the S4/S
 `main` and `develop` now have active branch protection. Staging deployment, production
 delivery and the remaining product work are recorded in the handover.
 
+[Staging preparation](docs/STAGING.md) records the container configuration,
+required hosting inputs and deployment/walkthrough procedure.
+
 The product brand is **IHWEZA** — *Together We Move.* The repository, Python package and
 Django project name remain `matthy.app` / `config`.
 
