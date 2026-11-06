@@ -1,0 +1,9 @@
+title = "matthy secret scan"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Django's consumed_at__isnull=True predicate checks for an unused token"
+regexTarget = "secret"
+regexes = ['''^consumed_at__isnull=True$''']
