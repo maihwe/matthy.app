@@ -8,8 +8,12 @@ ten gates configured and none of them required is a repository where a red build
 This document is the checklist to run once, by hand, and to re-run whenever someone
 wonders whether it was ever done.
 
-It cannot be automated from inside the repository, because the credential that could
-change branch protection is the credential that could remove it.
+Manage it through GitHub settings or an explicitly authorized administrator CLI
+session. Do not give repository CI the credential that can change or remove its
+own branch protection.
+
+**Configured and verified on 2026-11-06:** `main` and `develop` have active rulesets.
+The saved configuration is recorded in §9 and [PROJECT_HANDOVER.md](PROJECT_HANDOVER.md).
 
 ---
 
@@ -156,23 +160,64 @@ Run this to confirm the ruleset is actually in force, rather than merely intende
 
 ```bash
 gh api repos/{owner}/{repo}/rulesets --jq '.[].name'
-gh api repos/{owner}/{repo}/branches/main/protection \
-  --jq '.required_status_checks.contexts'
+gh api repos/{owner}/{repo}/rules/branches/main \
+  --jq '.[] | select(.type == "required_status_checks") | .parameters'
+gh api repos/{owner}/{repo}/rules/branches/develop \
+  --jq '.[] | select(.type == "required_status_checks") | .parameters'
 ```
 
-The second command must list all eight check names from §2. If it returns a 404, no
-protection is configured — the gates are advisory, and a red build can merge.
+Both branch-rules responses must list all eight check names from §2 and
+`strict_required_status_checks_policy: true`. Inspect the full effective rules for
+the PR, discussion-resolution, force-push/deletion and main linear-history controls.
+The branch API should report `protected: true` for both branches.
+
+`branches/main/protection` reads classic branch protection; it may return 404 when
+active rulesets provide protection. That response alone does not establish that a
+branch is unprotected. The effective branch-rules endpoints above verify rulesets.
 
 ---
 
 ## 8. Checklist
 
-- [ ] `develop` branch created and pushed
-- [ ] Ruleset on `main`: PR required, linear history, no force push, no deletion
-- [ ] Ruleset on `develop`: PR required, no force push
-- [ ] A trivial PR has been opened so all eight checks have run at least once
-- [ ] All eight check names added as required on both branches
-- [ ] "Require branches to be up to date before merging" enabled
-- [ ] "Require conversation resolution" enabled
+- [x] `develop` branch created at the passing `main` implementation baseline
+- [x] Ruleset on `main`: PR required, linear history, no force push, no deletion
+- [x] Ruleset on `develop`: PR required, no force push, no deletion
+- [x] All eight checks have run — S4/S5 PR #2 and merged-commit CI passed
+- [x] All eight check names added as required on both branches
+- [x] "Require branches to be up to date before merging" enabled
+- [x] "Require conversation resolution" enabled
 - [ ] `production` environment created with required reviewers
-- [ ] §7 verification commands run and their output pasted into the PR that adds this file
+- [x] Effective branch-rules and protected-branch verification completed; results saved below
+
+The production environment/reviewer configuration was not verified or created in
+this session and remains an operational setup item.
+
+## 9. Verified setup — 2026-11-06
+
+Repository: `maihwe/matthy.app`. `develop` was created from passing `main` commit
+`733691a730e61dce84aa64ff6640bfa83f373293`.
+
+| Ruleset | Target | Verified enforcement |
+|---|---|---|
+| [26717900 — Main branch protection](https://github.com/maihwe/matthy.app/rules/26717900) | `main` | Active; PR/check/discussion requirements, linear history, squash/rebase only, no deletion/non-fast-forward updates, no bypass actors |
+| [26717994 — Develop branch protection](https://github.com/maihwe/matthy.app/rules/26717994) | `develop` | Active; PR/check/discussion requirements, all merge methods allowed, no deletion/non-fast-forward updates, no bypass actors |
+| [26718024 — Owner administration of protected branches](https://github.com/maihwe/matthy.app/rules/26718024) | Both | Active; update restriction, bypassable only by repository administrators |
+
+The administrator bypass applies only to the separate update restriction. It does
+not bypass either primary ruleset's PR or CI requirements. `maihwe` was the sole
+collaborator/administrator when verified; adding administrators would extend update
+permission and calls for reviewing the owner-only policy.
+
+Both effective branch-rules endpoints returned all eight required check names,
+bound to GitHub Actions app ID `15368`, with strict up-to-date checking. PR rules
+returned zero approving reviews, stale-review dismissal and discussion resolution
+enabled; code-owner, last-push and extra unattributed-change approvals disabled.
+The branches API returned:
+
+```json
+{"name":"main","protected":true,"sha":"733691a730e61dce84aa64ff6640bfa83f373293"}
+{"name":"develop","protected":true,"sha":"733691a730e61dce84aa64ff6640bfa83f373293"}
+```
+
+This is a dated configuration record. Recheck GitHub before relying on it after
+subsequent settings changes; documentation does not enforce protection by itself.

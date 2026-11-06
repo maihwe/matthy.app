@@ -36,8 +36,9 @@ implementation teaches something the design did not anticipate.
 
 | Document | Status |
 |---|---|
+| [Project Handover](PROJECT_HANDOVER.md) | Start here — completed milestone, saved GitHub/CI state, remaining work and next-session checklist (2026-11-06) |
 | [Phase 1 Plan](PHASE_1_PLAN.md) | Active — slices S0–S5 (S1 split into S1a/S1b), decisions P1-1…P1-18, blocking items §6, **specification conflicts C1–C7 in §7** |
-| [Branch Protection](BRANCH_PROTECTION.md) | Active — the manual checklist for the half of 11 §6 that is not a file |
+| [Branch Protection](BRANCH_PROTECTION.md) | Configured and verified on `main` and `develop` — active GitHub rulesets, required CI/PRs and administrator update restrictions |
 
 ## Decisions resolved
 

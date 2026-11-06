@@ -138,5 +138,8 @@ read-only admin, pagination, CSRF and write rate limits. Zero-version legacy bro
 digests survive the additive upgrade, and reseeding preserves grant history after
 its original editor loses authority.
 
-Hosted CI, real SMS/email delivery, member-facing screens and financial modules
-remain separate integration and implementation work.
+Hosted CI subsequently passed for the S4/S5 PR and its merged `main` commit;
+[run 42273688659](https://github.com/maihwe/matthy.app/actions/runs/42273688659)
+passed all ten gates. Real SMS/email delivery, staging deployment, member-facing
+screens and financial modules remain separate work. See
+[PROJECT_HANDOVER.md](PROJECT_HANDOVER.md) for the saved state and next starting point.
