@@ -8,6 +8,9 @@ Celery · Docker
 
 ## Status
 
+**Resume work here:** [Project handover — completed work, remaining tasks and next
+session checklist](docs/PROJECT_HANDOVER.md) (updated 2026-11-06).
+
 **Phase 0 — Discovery: complete and accepted.** All fourteen design documents are
 drafted and reviewed; [`docs/`](docs/README.md) tracks their status, the decisions
 resolved, and the open questions still awaiting answers. Also settled: 102 required tests
@@ -28,7 +31,9 @@ codes, session management, device management and browser admin MFA with staff en
 and the remaining authentication work. [Groups and permissions](docs/GROUPS.md)
 covers group setup, invitations, membership, bounded role configuration, platform
 administration and role-triggered MFA/session revocation. Local verification uses
-real PostgreSQL 16 and Redis; hosted CI and production delivery remain separate milestones.
+real PostgreSQL 16 and Redis. All ten gates also passed on GitHub after the S4/S5 merge;
+`main` and `develop` now have active branch protection. Staging deployment, production
+delivery and the remaining product work are recorded in the handover.
 
 The product brand is **IHWEZA** — *Together We Move.* The repository, Python package and
 Django project name remain `matthy.app` / `config`.

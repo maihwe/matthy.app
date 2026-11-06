@@ -331,3 +331,9 @@ regressions, bringing the distinct verified count to 1,037. Final accounts/group
 combined line/branch coverage is 95.90%; other code has 96.01% line coverage.
 Role changes revoke bearer/browser sessions and pending proofs, while untouched
 zero-version legacy browser digests remain valid. See [GROUPS.md](GROUPS.md).
+
+Hosted CI subsequently passed for the S4/S5 PR and merged `main` commit
+`733691a730e61dce84aa64ff6640bfa83f373293`; see
+[run 42273688659](https://github.com/maihwe/matthy.app/actions/runs/42273688659).
+The earlier hosted-CI statement describes the pre-S5 local snapshot. Current saved
+state and unfinished work are recorded in [PROJECT_HANDOVER.md](PROJECT_HANDOVER.md).
