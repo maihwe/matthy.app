@@ -90,6 +90,23 @@ provided by the new Container workflow. Hosting target, domain, deployment acces
 real delivery adapters and deployed walkthrough results remain pending. No hosted
 staging URL or live deployment is recorded yet.
 
+AWS was selected as the hosting direction after the staging container work.
+[AWS_STAGING.md](AWS_STAGING.md) records the CloudFormation templates, temporary
+GitHub OIDC credentials, explicit migration/release workflow, internal ALB probe
+and restart procedure. The workspace has no AWS credentials/profile or account
+connection. Account ID/access, region, domain/certificate and budget remain needed;
+no AWS resources or paid services have been created. The first AWS stack deploys
+web only; worker/beat services remain to be added when background tasks exist.
+PR #5 container preparation is merged into `develop` at
+[`c018875`](https://github.com/maihwe/matthy.app/commit/c018875064b2b8d715027e2419ce3e97b73485bf);
+its [CI](https://github.com/maihwe/matthy.app/actions/runs/42292627376) and
+[actual Docker/runtime check](https://github.com/maihwe/matthy.app/actions/runs/42292627478)
+both passed. AWS configuration is a separate preparation change, not a hosted deployment.
+Local AWS validation passed templates/workflows, lint/types, 20 AWS cases and 16
+existing probe cases. AWS API/hosting validation is pending account access. The
+manual AWS workflow must also exist on default `main` before dispatching `develop`;
+promote the prepared configuration through a release PR after its CI passes.
+
 This is the agreed next starting point, not a deployment already performed.
 
 - Select/confirm the staging hosting account, domain, PostgreSQL 16 and Redis
@@ -183,8 +200,10 @@ the current arithmetic design. Do not infer these decisions from working tests.
    `develop` with the documented self-review and passing checks; promote to `main`
    through a release PR. Direct pushes, force pushes and branch deletion are blocked
    on the protected branches, including for the current administrator.
-4. Begin with a staging-readiness review and identify the hosting/provider inputs
-   listed above. Confirm the target hosting/provider setup before deployment.
+4. Continue from [AWS_STAGING.md](AWS_STAGING.md): obtain AWS account access, region,
+   hostname and budget; estimate/review the proposed resources; then follow registry,
+   secret, infrastructure, database-initialization and release ordering. If AWS
+   access is still absent, finish independent preparation and report the missing input.
 5. After meaningful progress, update this handover with deployed/saved commit links,
    verification results and remaining items. Do not rerun the long local suite just
    to recover context or push unchanged code; run checks appropriate to new work and

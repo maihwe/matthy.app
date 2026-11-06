@@ -26,6 +26,7 @@ backups
 docs
 tests
 .github
+infra
 .idea
 .vscode
 dist
