@@ -5,6 +5,10 @@ The backend staging image uses `docker/Dockerfile` and
 Hosting, domain, external database/Redis services and real delivery providers
 must be selected before a hosted walkthrough can start.
 
+AWS has been selected for deployment preparation. [AWS_STAGING.md](AWS_STAGING.md)
+records the templates, account/DNS/budget inputs and release ordering. No AWS
+infrastructure or hosted staging URL has been provisioned yet.
+
 ## Current state
 
 - GitHub's `staging` environment is created; deployments are limited to protected

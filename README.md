@@ -38,6 +38,9 @@ delivery and the remaining product work are recorded in the handover.
 [Staging preparation](docs/STAGING.md) records the container configuration,
 required hosting inputs and deployment/walkthrough procedure.
 
+[AWS staging setup](docs/AWS_STAGING.md) records the selected hosting direction,
+CloudFormation templates, deployment workflow and remaining account/DNS inputs.
+
 The product brand is **IHWEZA** — *Together We Move.* The repository, Python package and
 Django project name remain `matthy.app` / `config`.
 

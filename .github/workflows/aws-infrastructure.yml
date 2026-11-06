@@ -1,0 +1,27 @@
+name: AWS infrastructure
+
+on:
+  pull_request:
+    branches: [main, develop]
+  push:
+    branches: [main, develop]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  templates:
+    name: AWS templates
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install cfn-lint==1.60.0
+      - name: Validate CloudFormation schemas and conditions
+        run: cfn-lint infra/aws/bootstrap.yaml infra/aws/staging.yaml
+      - name: Validate release script syntax
+        run: bash -n scripts/aws_staging_release.sh
