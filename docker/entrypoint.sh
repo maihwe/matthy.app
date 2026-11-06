@@ -31,14 +31,15 @@ fi
 
 case "${role}" in
     web)
-        log "starting web (ASGI) on :8000"
+        log "starting web (ASGI) on :${PORT:-8000}"
         exec gunicorn config.asgi:application \
             --worker-class uvicorn.workers.UvicornWorker \
-            --bind 0.0.0.0:8000 \
+            --bind "0.0.0.0:${PORT:-8000}" \
             --workers "${GUNICORN_WORKERS:-4}" \
             --timeout "${GUNICORN_TIMEOUT:-60}" \
             --graceful-timeout 30 \
             --access-logfile - \
+            --access-logformat '%(h)s %(m)s %(U)s %(s)s %(L)s' \
             --error-logfile -
         ;;
     worker)
@@ -63,7 +64,7 @@ case "${role}" in
         exec python manage.py shell
         ;;
     *)
-        log "unknown role '${role}'; expected web, worker, beat, or shell"
+        log "running explicit release command"
         exec "$@"
         ;;
 esac

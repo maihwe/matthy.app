@@ -82,6 +82,14 @@ branches. See [Branch Protection](BRANCH_PROTECTION.md) for verification command
 
 ### Next milestone: staging and a foundation walkthrough
 
+Staging preparation has now started. [STAGING.md](STAGING.md) records the container
+fixes, environment checklist and release procedure. GitHub's `staging` environment
+was created with protected-branch deployment restrictions. Local probe regressions
+(16 cases) and build-only static collection passed; image/runtime validation is
+provided by the new Container workflow. Hosting target, domain, deployment access,
+real delivery adapters and deployed walkthrough results remain pending. No hosted
+staging URL or live deployment is recorded yet.
+
 This is the agreed next starting point, not a deployment already performed.
 
 - Select/confirm the staging hosting account, domain, PostgreSQL 16 and Redis

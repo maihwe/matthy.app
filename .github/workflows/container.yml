@@ -1,0 +1,138 @@
+name: Container
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+  workflow_dispatch:
+
+concurrency:
+  group: container-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  image:
+    name: Staging image
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: matthy
+          POSTGRES_USER: matthy
+          POSTGRES_PASSWORD: ci-only-password  # pragma: allowlist secret
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U matthy -d matthy"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Add a synthetic build-context canary
+        run: printf 'container-ignore-canary\n' > .env.container-probe
+      - uses: docker/setup-buildx-action@v3
+      - name: Build production image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/Dockerfile
+          load: true
+          tags: ihweza/staging:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: Generate ephemeral CI configuration
+        shell: bash
+        run: |
+          umask 077
+          docker run --rm --interactive --entrypoint python "ihweza/staging:${GITHUB_SHA}" - <<'PY' > "${RUNNER_TEMP}/matthy-staging-ci.env"
+          import secrets
+          from cryptography.fernet import Fernet
+          from cryptography.hazmat.primitives import serialization
+          from cryptography.hazmat.primitives.asymmetric import rsa
+
+          private = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+          private_pem = private.private_bytes(
+              serialization.Encoding.PEM,
+              serialization.PrivateFormat.PKCS8,
+              serialization.NoEncryption(),
+          ).decode()
+          public_pem = private.public_key().public_bytes(
+              serialization.Encoding.PEM,
+              serialization.PublicFormat.SubjectPublicKeyInfo,
+          ).decode()
+          configuration = {
+              "DJANGO_SETTINGS_MODULE": "config.settings.staging",
+              "DJANGO_DEBUG": "false",
+              "DJANGO_SECRET_KEY": secrets.token_urlsafe(64),
+              "DJANGO_ALLOWED_HOSTS": "staging.example.test",
+              "DJANGO_CSRF_TRUSTED_ORIGINS": "https://staging.example.test",
+              "POSTGRES_DB": "matthy",
+              "POSTGRES_USER": "matthy",
+              "POSTGRES_PASSWORD": "ci-only-password",
+              "POSTGRES_HOST": "127.0.0.1",
+              "REDIS_URL": "redis://127.0.0.1:6379/0",
+              "JWT_SIGNING_KEY": private_pem,
+              "JWT_VERIFYING_KEY": public_pem,
+              "MFA_ENCRYPTION_KEYS": Fernet.generate_key().decode(),
+              "GUNICORN_WORKERS": "1",
+          }
+          for name, value in configuration.items():
+              print(name + "=" + value.replace("\n", "\\n"))
+          PY
+      - name: Apply migrations explicitly
+        run: |
+          docker run --rm --network host \
+            --env-file "${RUNNER_TEMP}/matthy-staging-ci.env" \
+            "ihweza/staging:${GITHUB_SHA}" python manage.py migrate --noinput
+      - name: Check deployment settings and image boundaries
+        run: |
+          docker run --rm --env-file "${RUNNER_TEMP}/matthy-staging-ci.env" \
+            "ihweza/staging:${GITHUB_SHA}" python manage.py check --deploy --fail-level WARNING
+          docker run --rm --entrypoint sh "ihweza/staging:${GITHUB_SHA}" -ec '
+            test "$(id -u)" = 1000
+            test -x /app/docker/entrypoint.sh
+            test ! -w /app/config/settings/production.py
+            test ! -e /app/.env.container-probe
+            test ! -e /app/.git
+            test -s /app/staticfiles/staticfiles.json
+          '
+      - name: Start and verify the staging server
+        run: |
+          docker run --detach --name matthy-staging-ci --network host \
+            --env-file "${RUNNER_TEMP}/matthy-staging-ci.env" "ihweza/staging:${GITHUB_SHA}"
+          for attempt in $(seq 1 40); do
+            if [ "$(docker inspect --format '{{.State.Health.Status}}' matthy-staging-ci)" = healthy ]; then
+              break
+            fi
+            sleep 2
+          done
+          test "$(docker inspect --format '{{.State.Health.Status}}' matthy-staging-ci)" = healthy
+          curl --fail --silent --show-error \
+            -H 'Host: staging.example.test' -H 'X-Forwarded-Proto: https' \
+            http://127.0.0.1:8000/static/admin/css/base.css -o "${RUNNER_TEMP}/admin.css"
+          test -s "${RUNNER_TEMP}/admin.css"
+      - name: Verify a dependency outage fails readiness
+        run: |
+          docker stop '${{ job.services.redis.id }}'
+          if docker exec matthy-staging-ci python docker/healthcheck.py; then
+            exit 1
+          fi
+          curl --fail --silent --show-error \
+            -H 'Host: staging.example.test' -H 'X-Forwarded-Proto: https' \
+            http://127.0.0.1:8000/health/live/
+      - name: Container logs on failure
+        if: failure()
+        run: docker logs matthy-staging-ci
+      - name: Stop test application
+        if: always()
+        run: docker rm --force matthy-staging-ci || true
