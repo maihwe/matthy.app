@@ -1,7 +1,9 @@
 # Production-only dependencies. Imported by staging too, because 12 §1 requires
 # staging to mirror production rather than approximate it.
 #
-# See requirements/base.txt for why these are ranges rather than hash-pinned.
+# Resolve this input into requirements/lock/prod.txt for container builds.
+
+-r base.txt
 
 gunicorn>=22.0,<24.0
 uvicorn[standard]>=0.30,<1.0

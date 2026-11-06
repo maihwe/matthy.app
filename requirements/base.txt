@@ -1,18 +1,9 @@
 # Runtime dependencies.
 #
-# ── Why these are ranges and not pins ───────────────────────────────────────
-# 12 §2.1 requires dependencies "pinned with hashes (`pip-compile
-# --generate-hashes`)". Producing that lock file requires *resolving* the
-# packages, which requires a network and a working pip. Writing hash values by
-# hand would be inventing them, so this file carries floor/ceiling ranges and
-# the lock file is generated as the first action of the next slice that has a
-# working toolchain:
-#
-#     pip-compile --generate-hashes --output-file requirements/lock/base.txt \
-#         requirements/base.txt
-#
-# Until then, CI installs from these ranges. The gate that matters — gate 9,
-# `pip-audit` on high severity — runs either way.
+# These are the maintained dependency constraints. Production container builds
+# consume requirements/lock/prod.txt, generated with hashes from prod.txt (which
+# includes this file). Development CI installs the ranges and audits both its
+# environment and the locked production dependencies.
 #
 # The floor is what the code is written against; the ceiling is the next major
 # version. A major bump is a deliberate act rather than something that happens
@@ -23,6 +14,7 @@ Django>=5.2,<5.3            # LTS. 12 §2.1 pins the base image at python:3.12.
 djangorestframework>=3.15,<4.0
 djangorestframework-simplejwt>=5.3,<6.0
 drf-spectacular>=0.27,<1.0
+whitenoise>=6.7,<7.0      # serve collected admin/brand assets with production settings
 
 # --- Database --------------------------------------------------------------
 psycopg[binary]>=3.1,<4.0   # psycopg 3, not psycopg2

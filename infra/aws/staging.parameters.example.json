@@ -1,0 +1,11 @@
+[
+  {"ParameterKey": "ApplicationSecretArn", "ParameterValue": "REPLACE_WITH_STAGING_SECRET_ARN"},
+  {"ParameterKey": "ImageUri", "ParameterValue": "REPLACE_WITH_PUBLISHED_ECR_IMAGE_DIGEST_URI"},
+  {"ParameterKey": "StagingHostname", "ParameterValue": "staging.example.com"},
+  {"ParameterKey": "CertificateArn", "ParameterValue": "REPLACE_WITH_ISSUED_ACM_CERTIFICATE_ARN"},
+  {"ParameterKey": "DatabaseEngineVersion", "ParameterValue": "16.15"},
+  {"ParameterKey": "DatabaseInstanceClass", "ParameterValue": "db.t4g.small"},
+  {"ParameterKey": "CacheNodeType", "ParameterValue": "cache.t4g.small"},
+  {"ParameterKey": "HighAvailability", "ParameterValue": "false"},
+  {"ParameterKey": "WebDesiredCount", "ParameterValue": "0"}
+]

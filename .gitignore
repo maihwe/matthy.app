@@ -22,6 +22,7 @@ db.sqlite3-journal
 .env
 .env.*
 !.env.example
+!.env.staging.example
 *.pem
 *.key
 
@@ -53,3 +54,8 @@ docker-compose.override.yml
 *.dump
 *.sql.gz
 backups/
+
+# AWS local state, parameter files and generated staging secrets
+.aws/
+.env.aws-staging.json
+infra/aws/*.parameters.json
