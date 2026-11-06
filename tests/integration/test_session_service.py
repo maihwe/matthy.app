@@ -230,15 +230,17 @@ class TestDeviceBinding:
     """SEC-JWT-005, FR-AUTH-012."""
 
     def test_rotating_on_a_revoked_device_is_refused(self) -> None:
-        device = DeviceFactory(is_revoked=True)
+        device = DeviceFactory()
         issued = issue(user=device.user, device=device)
+        type(device).objects.filter(pk=device.pk).update(is_revoked=True)
 
         with pytest.raises(InvalidRefreshToken):
             rotate(refresh_token=issued.refresh_token)
 
     def test_the_refused_session_is_marked_revoked(self) -> None:
-        device = DeviceFactory(is_revoked=True)
+        device = DeviceFactory()
         issued = issue(user=device.user, device=device)
+        type(device).objects.filter(pk=device.pk).update(is_revoked=True)
 
         with pytest.raises(InvalidRefreshToken):
             rotate(refresh_token=issued.refresh_token)

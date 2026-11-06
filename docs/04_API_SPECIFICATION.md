@@ -164,6 +164,7 @@ not break every client.
 | `POST` | `/auth/pin/change/` | Change the PIN | Any + current PIN |
 | `POST` | `/auth/otp/request/` | Issue an OTP | None / Any |
 | `POST` | `/auth/otp/verify/` | Verify an OTP | None / Any |
+| `POST` | `/auth/email/request/` | Request verification of the saved email | Any |
 | `POST` | `/auth/email/verify/` | Verify email with a token | Token |
 | `POST` | `/auth/phone/verify/` | Verify phone with an OTP | OTP |
 | `POST` | `/auth/mfa/enable/` | Begin MFA enrolment | Any |
@@ -175,10 +176,16 @@ not break every client.
 | `GET` | `/auth/devices/` | List registered devices | Any |
 | `DELETE` | `/auth/devices/{id}/` | Revoke a device | Any |
 
+Session-list entries include `kind` (`TOKEN` or `BROWSER`). An MFA-authenticated
+admin cookie can list and revoke sessions/devices with CSRF on mutations. Browser
+session rows cannot authorize bearer access or token refresh. Admin sign-in and
+enrollment run through `/admin/login/` and `/admin/mfa/`; their password proofs are
+held server-side and cannot be redeemed through `/auth/mfa/challenge/`.
+
 ### 2.1 `POST /auth/register/`
 
 ```json
-{ "full_name": "Adaeze Okonkwo", "phone": "+2348012345678", "password": "..." }
+{ "full_name": "Adaeze Okonkwo", "phone": "+2348012345678", "password": "...", "email": "ada@example.test" }
 ```
 
 `201`:
@@ -186,14 +193,47 @@ not break every client.
 ```json
 {
   "data": {
-    "id": "9f1c...",
-    "full_name": "Adaeze Okonkwo",
-    "phone": "+2348012345678",
-    "account_status": "ACTIVE",
-    "verification_status": "UNVERIFIED"
+    "message": "If this phone number needs verification, a code will be sent."
   }
 }
 ```
+
+The same `201` body is returned for new, unverified and already-verified numbers
+(S10). Existing names and credentials are never overwritten. OTP codes, account
+identifiers and account status are not exposed by registration. This replaces the
+original identity-bearing registration response, which disclosed existing accounts.
+
+`email` is optional, validated up to 254 characters, and remains unverified until
+its token is consumed. Blank/null email is stored as absent. If the supplied
+address is already associated with another account (case-insensitively), the same
+generic `201` response is returned and no new account is created. An existing
+account's saved email and verification flags are never replaced by registration.
+
+`POST /auth/otp/request/` accepts `{ "phone": "+2348012345678" }` and returns the
+same message with `200`. This slice supports only the `PHONE_VERIFY` purpose.
+Unknown and already-verified numbers receive the same response without a message
+being delivered; all paths consume the same destination issuance budget.
+
+`POST /auth/phone/verify/` accepts `{ "phone": "+2348012345678", "code": "012345" }`.
+The code must contain exactly six ASCII digits. Success returns `200`:
+
+```json
+{
+  "data": {
+    "id": "9f1c...",
+    "phone": "+2348012345678",
+    "is_phone_verified": true,
+    "verification_status": "PHONE_VERIFIED"
+  }
+}
+```
+
+The OTP is consumed in the same transaction as the account update. A previously
+verified email makes the summary `FULLY_VERIFIED`. Invalid, expired, consumed,
+unknown or wrong-purpose codes return the same `400 validation_error`. Wrong
+guesses remain counted after an error response; three guesses exhaust the code.
+Verification cannot reactivate suspended or closed accounts. Clients log in using
+the original password after verification.
 
 ### 2.2 `POST /auth/login/`
 
@@ -217,6 +257,39 @@ not break every client.
 When MFA is enabled, `mfa_required: true` is returned with an `mfa_token` and no access
 token. The client completes `/auth/mfa/challenge/`.
 
+Implemented MFA login response:
+
+```json
+{"data":{"mfa_required":true,"mfa_token":"opaque-password-proof","enrollment_required":false,"method":"TOTP","expires_in":300,"sms_sent":null}}
+```
+
+`mfa_token` is single-use, bound to the account's credentials, current factor/role
+configuration and device, and permits three guesses. New password login supersedes
+earlier challenges. `POST /auth/mfa/challenge/` accepts `mfa_token` and `code` (six
+digits or a 20-character lowercase hexadecimal recovery code) and returns the
+normal token response after successful verification. SMS login reports `sms_sent`;
+if delivery fails, a recovery code can complete the challenge.
+
+`POST /auth/mfa/enable/` accepts `method` (`TOTP` recommended, or `SMS`) and
+`current_password`. TOTP returns `secret`, `provisioning_uri`, `method` and
+`expires_in: 600`; SMS requires a verified phone and sends a code through the
+configured delivery backend. No active factor changes before confirmation.
+`POST /auth/mfa/confirm/` accepts a six-digit `code` and returns
+`{"data":{"recovery_codes":["20-character-code", "..."]}}` once. Confirmation ends
+existing sessions; log in again afterwards. Setup expires in ten minutes and
+permits three guesses.
+
+Staff/superusers without enrollment receive `enrollment_required: true` at login.
+For these accounts, include that restricted `mfa_token` in enable and confirm
+requests instead of a bearer token. It cannot authorize any other API operation.
+
+`POST /auth/mfa/disable/` requires bearer authentication, `current_password` and a
+fresh TOTP or unused recovery `code`; SMS accounts use recovery codes here. Success
+returns `204` and ends all sessions. Staff/superusers cannot disable mandatory MFA.
+Privileged group/platform roles also require MFA. Browser admin sign-in uses
+password-then-code proof bound to a revocable browser session. Role changes
+invalidate bearer sessions, browser cookies and pending MFA challenges.
+
 **Failure responses are identical** whether the account exists or the password is wrong
 (10 §2.1) — same code, same message, same timing.
 
@@ -229,6 +302,103 @@ token. The client completes `/auth/mfa/challenge/`.
 `200` returns a **new** access token and a **new** refresh token. The old refresh token
 is invalidated (10 §3.1). Presenting an already-rotated token revokes the entire session
 family and returns `401 authentication_required`.
+
+### 2.4 Password recovery and changes
+
+`POST /auth/password/reset/` accepts an `identifier` containing a phone or email.
+Only verified channels of active accounts receive instructions. Every valid
+request returns the same `200` body, including unknown, unverified and inactive
+accounts:
+
+```json
+{"data": {"message": "If a verified recovery channel is available, reset instructions will be sent."}}
+```
+
+`POST /auth/password/reset/confirm/` accepts exactly one proof shape:
+
+```json
+{"phone": "+2348012345678", "code": "012345", "new_password": "..."}
+```
+
+```json
+{"reset_token": "...", "new_password": "..."}
+```
+
+Phone recovery uses a six-digit, hashed, expiring `PASSWORD_RESET` OTP, with three
+guesses per code. Email recovery uses a 384-bit random secret in a token bound to
+the account, email and credential state, stored only as a SHA-256 digest. Both
+expire after 10 minutes and are single-use. Requesting another reset invalidates
+earlier recovery proofs, including those issued to another channel.
+
+Success returns `204`, changes the password and revokes every bearer login and
+browser session. It clears credential lockout without changing account status.
+No replacement session is issued: the client logs in with the new password.
+Invalid, expired or reused proofs return `400 validation_error`. A weak replacement
+password leaves a valid proof available for retry. Failure to revoke sessions
+rolls the password and proof consumption back together.
+
+`POST /auth/password/change/` requires authentication and accepts
+`current_password` and `new_password`. The new password must satisfy the strength
+validators and differ from the current password. Wrong current passwords are
+counted towards account lockout. Success returns `204` and invalidates all login
+sessions and outstanding password-reset proofs.
+
+### 2.5 Transaction PIN management
+
+`POST /auth/pin/set/` requires authentication and accepts `current_password` and
+`pin`. Setup cannot replace an existing PIN; clients use the change route for that.
+Requiring the password prevents possession of an access token alone from setting
+the credential that authorises financial actions.
+
+`POST /auth/pin/change/` requires authentication and accepts `current_pin` and
+`new_pin`. PIN fields must be strings containing exactly four ASCII digits, so
+leading zeros are preserved. The replacement must differ from the current PIN.
+Wrong current PINs are counted towards account lockout, and all PIN changes use
+the five-attempt-per-15-minute per-user `pin_entry` limit.
+
+Success returns `204`. PINs use Django's configured password hasher. Both setup
+and changes invalidate bearer and browser sessions and outstanding recovery
+proofs. The immutable audit records `user.pin_set` or `user.pin_changed`, the actor,
+and whether a PIN was set before/after. It stores neither raw credentials nor
+credential hashes. Cookie-based credential mutations require CSRF protection.
+
+In development, recovery instructions are captured in Mailhog. Production
+delivery still requires a configured backend; local capture serves development
+and tests.
+
+### 2.6 Email verification
+
+`POST /auth/email/request/` requires authentication and accepts an empty JSON
+object. Delivery uses the authenticated account's saved address. It returns `200`:
+
+```json
+{"data":{"message":"If your account has an email needing verification, a token will be sent."}}
+```
+
+The same body is returned when email is absent or already verified. No token is
+returned in the response. In development, read the captured token in Mailhog.
+
+`POST /auth/email/verify/` accepts `{"token":"<emailed token>"}` without an access
+token or browser cookie. Successful confirmation returns `200`:
+
+```json
+{"data":{"id":"<user UUID>","email":"ada@example.test","is_email_verified":true,"verification_status":"FULLY_VERIFIED"}}
+```
+
+The summary is `EMAIL_VERIFIED` when the phone is not yet verified, and
+`FULLY_VERIFIED` when both channels are verified. Verification enables email-based
+recovery and preserves current login sessions and account status. Tokens contain
+384 random bits plus an account UUID, expire after 24 hours, and are single-use.
+Resend replaces earlier email verification tokens. Changes to the saved email,
+password, PIN or MFA version invalidate earlier tokens. Unknown, expired, consumed
+or mismatched proofs return the same `400 validation_error` response.
+
+Requests allow 50/hour per IP and 3/hour per account and destination;
+confirmation allows 120/minute per IP before proof lookup. Redis outages return
+`503`; refusals return `429` with `Retry-After`. Cookie requests require CSRF.
+Email verification responses set `Cache-Control: no-store`. Failed delivery
+consumes its undelivered token and allows a fresh request within the rate budget.
+Production delivery and adding/changing email through the profile API remain pending.
 
 ---
 
@@ -278,6 +448,13 @@ Every figure is server-computed (§44 rule 1). No client calculates a balance.
 | `GET` | `/locations/{id}/groups/` | Groups hosted at a street (FR-LOC-004) |
 | `POST`/`PATCH`/`DELETE` | `/locations/` … | `platform.manage_locations` |
 
+Implemented writes are POST `/locations/` and PATCH/DELETE `/locations/{id}/`.
+Creation accepts `country` (ISO2), `type` (country-specific code), optional
+`parent_id` (UUID), `name`, `slug`, `code`, `latitude` and `longitude`. PATCH edits
+descriptive fields and `is_active`; tree identity is immutable. DELETE deactivates
+the node while preserving children, group references and history. Public reads
+return active nodes and real active-group counts.
+
 `GET /locations/?parent=<uuid>&type=STREET&search=opebi&limit=20` returns a paginated
 tree level. `GET /locations/{id}/groups/` is the endpoint behind §50's
 find-location → find-street → find-group flow.
@@ -299,9 +476,15 @@ find-location → find-street → find-group flow.
 | `POST` | `/groups/{id}/members/{mid}/approve/` | Approve a membership | `members.approve` |
 | `POST` | `/groups/{id}/members/{mid}/suspend/` | Suspend | `members.suspend` |
 | `POST` | `/groups/{id}/members/{mid}/remove/` | Remove | `members.remove` |
+| `POST` | `/groups/{id}/members/{mid}/reinstate/` | Reinstate | `members.suspend` |
+| `POST` | `/groups/{id}/join/` | Apply or join an open/application group | Authenticated |
+| `POST` | `/groups/{id}/leave/` | Leave own membership | Authenticated |
+| `POST` | `/groups/invitations/accept/` | Accept a target-bound invitation token | Authenticated |
+| `POST` | `/groups/invitations/decline/` | Decline a target-bound invitation token | Authenticated |
 | `GET` | `/groups/{id}/members/{mid}/history/` | Membership history | `members.view_history` |
 | `GET`/`POST` | `/groups/{id}/roles/` | List / create roles | `groups.manage_settings` |
 | `PUT` | `/groups/{id}/roles/{rid}/permissions/` | Set role permissions | `groups.manage_settings` |
+| `PATCH`/`DELETE` | `/groups/{id}/roles/{rid}/` | Rename/remove an unassigned custom role | `groups.manage_settings` |
 | `POST` | `/groups/{id}/members/{mid}/roles/` | Assign a role | `members.assign_roles` |
 | `DELETE` | `/groups/{id}/members/{mid}/roles/{rid}/` | Revoke a role | `members.assign_roles` |
 | `GET`/`PUT` | `/groups/{id}/settings/` | Group settings | `groups.manage_settings` |
@@ -312,6 +495,25 @@ find-location → find-street → find-group flow.
 `403 separation_of_duties` when a caller attempts to grant a role they do not hold
 themselves (05 §6.4), and `422` when the operation would remove the group's last owner
 (05 §6.6).
+
+S5 responses use `{data: ...}`; list responses also include cursor `pagination`.
+Creation takes a group-type code, public location UUID, descriptive fields,
+membership settings and optional initial officer nominations. It returns 201
+with `data.invitations`; invitation creation returns 201 with a one-time `token`.
+Both responses carry `Cache-Control: no-store`. Acceptance takes `{token}` and
+returns a membership; decline returns 204. Only token digests are stored; raw
+invitation tokens never enter audit records.
+See [GROUPS.md](GROUPS.md) for the membership and bootstrap rules.
+
+The Phase 1 dashboard reports `active_members`, `pending_approvals` and `roles`.
+Financial dashboard fields arrive with their financial modules.
+
+Platform endpoints: public GET and guarded POST `/group-types/`, public GET and
+guarded PATCH `/group-types/{code}/` (`platform.manage_group_types`); authenticated
+GET `/role-templates/` and `/permissions/`; GET/POST `/platform/roles/` and DELETE
+`/platform/users/{uid}/roles/{rid}/` (`platform.manage_users`); PUT
+`/platform/roles/{rid}/permissions/` (`settings.manage_platform`). Group-type edits
+change defaults for future groups and preserve existing groups' role configuration.
 
 ---
 

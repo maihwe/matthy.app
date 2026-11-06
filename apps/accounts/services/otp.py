@@ -51,7 +51,15 @@ from apps.accounts.services.errors import (
 from apps.accounts.services.phones import mask_phone
 from config import ratelimit
 
-__all__ = ["CODE_LENGTH", "DEFAULT_TTL", "TTL_BY_PURPOSE", "IssuedOTP", "issue", "verify"]
+__all__ = [
+    "CODE_LENGTH",
+    "DEFAULT_TTL",
+    "TTL_BY_PURPOSE",
+    "IssuedOTP",
+    "issue",
+    "reserve_issuance",
+    "verify",
+]
 
 logger = logging.getLogger(__name__)
 
@@ -139,7 +147,7 @@ def _masked(destination: str) -> str:
     return mask_phone(destination)
 
 
-def _enforce_issuance_limits(destination: str) -> None:
+def reserve_issuance(destination: str) -> None:
     """SEC-OTP-004, in both of the windows it names.
 
     Keyed on the destination rather than on the member, because the cost being
@@ -194,7 +202,7 @@ def issue(*, destination: str, purpose: str, user: User | None = None) -> Issued
         RateLimited: SEC-OTP-004's windows are exhausted.
         config.ratelimit.RateLimiterUnavailable: the limiter is down.
     """
-    _enforce_issuance_limits(destination)
+    reserve_issuance(destination)
 
     now = timezone.now()
     expires_at = now + _ttl_for(purpose)
@@ -206,6 +214,10 @@ def issue(*, destination: str, purpose: str, user: User | None = None) -> Issued
     code = _generate_code()
 
     with transaction.atomic():
+        # Serialize codes issued to the same member before checking live rows.
+        # Two atomic blocks alone can both miss a predecessor and insert live codes.
+        if user is not None:
+            User.objects.select_for_update().get(pk=user.pk)
         OTPCode.objects.filter(
             destination=destination,
             purpose=purpose,

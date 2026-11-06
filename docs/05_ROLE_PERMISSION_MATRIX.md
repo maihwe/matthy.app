@@ -211,8 +211,9 @@ the permission table is the registry.
 | `DAILY_CONTRIBUTION` | `GROUP_OWNER`, `COLLECTOR`, `MEMBER` | §5's example verbatim. A daily collector operation needs someone who owns it, someone who collects, and members. A secretary role here is ceremony. |
 | `MONTHLY_SAVINGS` | `GROUP_OWNER`, `TREASURER`, `MEMBER` | Funds accumulate between disbursements; someone must be accountable for them. |
 | `TRADERS` | `GROUP_OWNER`, `COLLECTOR`, `MEMBER` | Market-based; cash collected in person. |
-| `ASSOCIATION` | `CHAIRMAN`, `SECRETARY`, `TREASURER`, `COLLECTOR`, `AUDITOR`, `MEMBER` | §5's example verbatim. |
-| `COOPERATIVE` | `CHAIRMAN`, `SECRETARY`, `TREASURER`, `LOAN_OFFICER`, `AUDITOR`, `MEMBER` | Lending is central, so it gets a dedicated officer. |
+| `ASSOCIATION` | `GROUP_OWNER`, `CHAIRMAN`, `SECRETARY`, `TREASURER`, `COLLECTOR`, `AUDITOR`, `MEMBER` | The owner and member are structural; the remaining roles serve the association. |
+| `COOPERATIVE` | `GROUP_OWNER`, `CHAIRMAN`, `SECRETARY`, `TREASURER`, `LOAN_OFFICER`, `AUDITOR`, `MEMBER` | Lending is central, so it gets a dedicated officer. |
+| `WELFARE` | `GROUP_OWNER`, `TREASURER`, `MEMBER` | Matches the welfare type in the database design. |
 
 A group is seeded from its type's template and may then diverge (§7). Changing a group's
 type does **not** silently rewrite its roles — it offers the new template, and the group
@@ -222,7 +223,7 @@ decides.
 
 ## 5. The matrix
 
-Legend: **✓** granted by default · **○** not granted by default, but grantable ·
+Legend: **✓** granted by default and required · **○** not granted by default, but grantable ·
 **✗** never grantable by anyone · **D** dual control required (§6.5)
 
 ### 5.1 Platform roles
@@ -289,7 +290,7 @@ money-moving permission.
 | `settlements.view_own` | ✗ | ✗ | ✗ | ✗ | ✓ | ✗ | ✗ | ✗ |
 | `settlements.view_group` | ✓ | ✓ | ✓ | ✓ | ✗ | ✗ | ✓ | ✗ |
 | `settlements.verify` | ✓ | ✓ | ✗ | ✓ | ✗ | ✗ | ✗ | ✗ |
-| `settlements.dispute` | ✓ | ✓ | ✗ | ✓ | ✓ | ✗ | ✓ | ✗ |
+| `settlements.dispute` | ✓ | ✓ | ✗ | ✓ | ✓ | ✗ | ✗ | ✗ |
 | `settlements.resolve_variance` | ✓ | ✓ | ✗ | ✓ | ✗ | ✗ | ✗ | ✗ |
 | `ledger.view_own` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | `ledger.view_group` | ✓ | ✓ | ○ | ✓ | ✗ | ○ | ✓ | ✗ |
@@ -302,7 +303,7 @@ money-moving permission.
 | `loans.approve` | ✓ | ✓ | ✗ | ○ | ✗ | ○ | ✗ | ✗ |
 | `loans.reject` | ✓ | ✓ | ✗ | ○ | ✗ | ✓ | ✗ | ✗ |
 | `loans.configure_rules` | ✓ | ✓ | ✗ | ✗ | ✗ | ○ | ✗ | ✗ |
-| `guarantors.respond` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `guarantors.respond` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✗ | ✓ |
 | `guarantors.view` | ✓ | ✓ | ✓ | ✓ | ✗ | ✓ | ✓ | ✗ |
 | `disbursements.view` | ✓ | ✓ | ✓ | ✓ | ✗ | ○ | ✓ | ✗ |
 | `disbursements.request` | ✓ | ✓ | ○ | ✓ | ✗ | ○ | ✗ | ✗ |
@@ -387,7 +388,8 @@ A group configures its roles (§5, R2). The bounds:
 - Rename any non-system role
 - Create new roles
 - Add or remove the `○` permissions in its own roles
-- Choose which roles its group type seeds
+- Create roles from any frozen group template; platform operators choose the defaults
+  a group type seeds for future groups
 
 **A group may not:**
 - Grant a `✗` permission to anyone
@@ -402,6 +404,20 @@ The `is_system` column on `group_roles` distinguishes a seeded role a group may
 reconfigure from one it may not delete. System roles can be modified but not removed,
 because `GROUP_OWNER` and `MEMBER` are structural.
 
+S5 freezes every ✓ grant as required and every D grant as required with dual control.
+The earlier auditor entries for `settlements.dispute` and `guarantors.respond` were
+corrected to ✗ to satisfy the absolute read-only rule. Holding an active AUDITOR
+template also blocks writes inherited from MEMBER or another role.
+
+New groups receive structural OWNER/MEMBER assignments for their founder. The
+founder may nominate other initial officers in the creation request; those users
+remain INVITED with dormant roles until they accept and, where required, receive
+membership approval. This bootstrap cannot be reused on an existing group.
+Subsequent assignments require a role the assigner already holds. A custom role
+may also be delegated from a held template when its grants are a subset of the
+assigner's current authority. Other self-assignments and positive self-grants are
+prohibited. The owner must transfer ownership before leaving or being demoted.
+
 ---
 
 ## 8. Enforcement
@@ -414,7 +430,8 @@ def has_perm(user, group, permission_code) -> bool
 
 It resolves the code against `group_permissions` for the user's active memberships in
 that group (03 §5.5), caches the result in Redis keyed by
-`(user_id, group_id, permission_version)`, and is the only place the question is asked.
+user UUID, group UUID, group permission version, platform version and user
+authorization version, and is the only place the question is asked.
 An ad-hoc `user.roles.filter(...)` in a view is a defect, and the linter rule and code
 review enforce it.
 
@@ -448,8 +465,10 @@ that group. Revocation is immediate rather than eventual (02 §5.6).
 | `permissions` | The catalogue in §3, `is_system = TRUE` |
 | `group_roles` (platform) | `SUPER_ADMIN`, `PLATFORM_ADMIN`, `SUPPORT_ADMIN`, `group_id = NULL` |
 | `group_roles` (templates) | The eight group roles in §2.2, template-scoped |
+| `role_templates` | Three platform and eight group templates with immutable safety policies |
+| `platform_role_assignments` | Explicit operator assignments, bootstrapped separately from Django permissions |
 | `group_permissions` | The default grants in §5 — the `✓` cells |
-| `group_types` | Five types (§4), each pointing at its role template |
+| `group_types` | Six types (§4), each pointing at its role template |
 
 Seeded via a data migration that is **idempotent** — re-running it corrects drift
 without duplicating rows or resetting a group's customisations.

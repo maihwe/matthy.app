@@ -72,14 +72,14 @@ gate_tests() {
     # (The markers are not decorative — they are what lets a developer run one
     # suite locally — but nothing selects on them in CI.) 6b and 6d need real
     # PostgreSQL, which this script assumes is up.
-    pytest -p no:randomly
+    pytest -p no:randomly --cov --cov-report=xml --cov-report=term-missing
 }
 
 gate_coverage() {
     # 13 §9 specifies four per-scope floors, not one global floor. coverage.py
     # has a single `fail_under`, and 80 satisfies none of them — it would let
     # ledger/ sit at 81%, where an uncovered branch is an unposted transaction.
-    coverage json -o coverage.json
+    coverage json -o coverage.json || return
     python scripts/check_coverage.py
 }
 

@@ -102,7 +102,68 @@ data definition and S1b is a later, separately-reviewed addition.
 Branding (IHWEZA) rides along with S0, so that the admin title, OpenAPI title, and email
 identity are set in one place before anything renders them.
 
-### Slice status
+### Current implementation update (2026-11-06)
+
+Accounts, audit and locations now have migrations and executable tests. The first
+S4 slice implements login, refresh, logout, session lists/revocation and device
+lists/revocation. See [AUTHENTICATION.md](AUTHENTICATION.md) for setup and remaining
+scope. C6 now has explicit `family_id` and `revoked_reason` columns with a tested
+legacy backfill. C7 has a configurable 120/minute per-IP refresh limit; login also
+has a 50/15-minute per-IP limit across accounts. Other S4 flows are tracked below.
+
+The next S4 slice adds registration, phone-code requests and phone verification.
+Registration responses now follow S10's generic response rule. C8 has a documented
+50/hour per-IP registration/resend limit. C10 uses the channel booleans as facts and
+updates the verification summary atomically when phone ownership is proven. Local
+code delivery is captured in Mailhog; production SMS remains unconfigured.
+
+Password recovery now supports verified phone and email channels, single-use
+expiring proofs and recovery lockout reset. Authenticated password changes and PIN
+setup/changes revoke bearer and browser sessions. PIN audit records contain only
+change metadata, never credential values or hashes. Production delivery remains
+outside these completed slices.
+
+MFA now supports confirmed TOTP and local-captured verified-phone SMS enrollment,
+single-use recovery codes and password/device-bound login challenges. C1 is resolved
+by `0004_mfa`: encrypted seeds, pending enrollment, recovery-code and challenge tables,
+plus persistent session verification/version metadata. C2's TOTP key decision uses
+a separate Fernet keyring from the secret store with atomic re-encryption via
+`rotate_mfa_keys`; encryption of other sensitive fields remains pending. Staff and
+superusers must enroll through a restricted password proof, and cannot disable MFA.
+S5 now enforces privileged group/platform role MFA and revokes existing sessions
+when role authority changes. Browser admin MFA provides password-then-code
+sign-in and staff enrollment. `0005_browser_mfa` binds cookies to revocable WEB-device
+session rows, with 30-minute idle and 12-hour absolute limits; browser rows and
+challenges cannot authorize mobile bearer/refresh flows. Privileged password-only
+cookies remain denied. All browser mutations require POST and CSRF.
+
+Email verification now accepts optional email during registration and provides an
+authenticated request for the saved address plus public single-use confirmation.
+It uses the existing `verification_tokens` table with purpose/address/credential
+binding, 24-hour expiry, resend invalidation and configurable account/destination/IP
+limits. Concurrent email and phone confirmation preserve the combined summary;
+verified email enables the completed recovery flow. Email collisions at registration
+receive a generic response instead of an error or account mutation. Adding/changing
+email after registration and production delivery remain pending.
+
+All ten local CI gates passed on 2026-11-06, including 977 tests against PostgreSQL
+16 and Redis, the coverage floors, dependency audit and OpenAPI contract check.
+This was the pre-S5 verification baseline. S4 still has the authentication work
+listed in AUTHENTICATION.md. S5 implementation and verification are recorded in
+[GROUPS.md](GROUPS.md).
+
+S5 is now locally complete: group types/templates, groups, membership/history,
+invitations, bounded role configuration, platform assignments, ownership transfer,
+the single resolver, scoped admin and permission-guarded location writes. All ten
+CI gates passed with 1,034 full-suite tests, followed by 120 focused regression
+tests including three additional cases (1,037 distinct tests verified). Final
+security scope coverage is 95.90%; other code has 96.01% line coverage. Production
+delivery, member screens and the remaining S4 flows are separate work.
+
+The status table and unexecuted-toolchain findings below are the original planning
+snapshot; current verification results are recorded in AUTHENTICATION.md and GROUPS.md.
+
+### Slice status (planning snapshot, 2026-09-16)
 
 | Slice | Written | Verified | Note |
 |---|---|---|---|

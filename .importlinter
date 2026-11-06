@@ -30,6 +30,8 @@ root_package = apps
 name = Module layers (02 §4.1)
 type = layers
 layers =
+    apps.groups
+    apps.locations
     apps.accounts
     apps.audit
 

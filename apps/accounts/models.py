@@ -33,6 +33,7 @@ from django.db import models
 from django.db.models import Q
 from django.db.models.functions import Lower
 from django.utils import timezone
+from django.utils.crypto import salted_hmac
 from django.utils.translation import gettext_lazy as _
 
 from apps.accounts.constants import (
@@ -40,6 +41,8 @@ from apps.accounts.constants import (
     DevicePlatform,
     Gender,
     OTPPurpose,
+    SessionKind,
+    SessionRevocationReason,
     TokenPurpose,
     TwoFactorMethod,
     VerificationStatus,
@@ -50,6 +53,9 @@ if TYPE_CHECKING:
 
 __all__ = [
     "Device",
+    "MFAChallenge",
+    "MFAEnrollment",
+    "MFARecoveryCode",
     "OTPCode",
     "User",
     "UserProfile",
@@ -178,6 +184,11 @@ class User(AbstractBaseUser, PermissionsMixin):
     is_phone_verified = models.BooleanField(default=False)
 
     two_factor_enabled = models.BooleanField(default=False)
+    totp_secret = models.TextField(blank=True, default="", editable=False)
+    mfa_version = models.PositiveIntegerField(default=0, editable=False)
+    authorization_version = models.PositiveBigIntegerField(default=0, editable=False)
+    role_mfa_required = models.BooleanField(default=False, editable=False)
+    last_totp_step = models.BigIntegerField(default=-1, editable=False)
     two_factor_method = models.CharField(
         max_length=16,
         choices=TwoFactorMethod.choices,
@@ -315,6 +326,91 @@ class User(AbstractBaseUser, PermissionsMixin):
         self.failed_login_attempts = 0
         self.locked_until = None
 
+    def _get_session_auth_hash(self, secret: str | None = None) -> str:
+        """Browser sessions also expire when the transaction PIN changes.
+
+        Preserve Django's hash for accounts without a PIN. Include the PIN hash
+        once set; secret-key fallback verification uses this same hook.
+        """
+        value = self.password
+        if self.pin_hash:
+            value += "\0" + self.pin_hash
+        if self.mfa_version:
+            value += f"\0mfa:{self.mfa_version}"
+        if self.authorization_version:
+            value += f"\0authorization:{self.authorization_version}"
+        return salted_hmac(
+            "django.contrib.auth.models.AbstractBaseUser.get_session_auth_hash",
+            value,
+            secret=secret,
+            algorithm="sha256",
+        ).hexdigest()
+
+
+class MFAEnrollment(models.Model):
+    """Unconfirmed setup; credentials and account state must still match."""
+
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    method = models.CharField(max_length=16)
+    secret = models.TextField(blank=True, default="", editable=False)
+    code_hash = models.CharField(max_length=255, blank=True, default="", editable=False)
+    credential_state = models.CharField(max_length=64, editable=False)
+    expires_at = models.DateTimeField()
+    attempts = models.PositiveSmallIntegerField(default=0)
+
+    class Meta:
+        db_table = "mfa_enrollments"
+
+    def __str__(self) -> str:
+        return f"MFAEnrollment({self.pk})"
+
+
+class MFARecoveryCode(models.Model):
+    """80-bit random codes; only domain-separated digests persist."""
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    code_hash = models.CharField(max_length=64, unique=True, editable=False)
+    consumed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        db_table = "mfa_recovery_codes"
+
+    def __str__(self) -> str:
+        return f"MFARecoveryCode({self.pk})"
+
+
+class MFAChallenge(models.Model):
+    """Password proof restricted to MFA; never an API access token."""
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    device = models.ForeignKey("Device", on_delete=models.CASCADE)
+    token_hash = models.CharField(max_length=64, unique=True, editable=False)
+    credential_state = models.CharField(max_length=64, editable=False)
+    enrollment_required = models.BooleanField(default=False)
+    audience = models.CharField(
+        max_length=16, choices=SessionKind.choices, default=SessionKind.TOKEN, editable=False
+    )
+    browser_session_key_hash = models.CharField(
+        max_length=64, blank=True, default="", editable=False
+    )
+    code_hash = models.CharField(max_length=255, blank=True, default="", editable=False)
+    expires_at = models.DateTimeField()
+    attempts = models.PositiveSmallIntegerField(default=0)
+    consumed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        db_table = "mfa_challenges"
+        constraints = [
+            models.CheckConstraint(
+                condition=Q(audience=SessionKind.TOKEN, browser_session_key_hash="")
+                | (Q(audience=SessionKind.BROWSER) & ~Q(browser_session_key_hash="")),
+                name="mfa_challenge_audience_binding",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"MFAChallenge({self.pk})"
+
 
 class UserProfile(models.Model):
     """``user_profiles`` — 03 §4.2.
@@ -404,6 +500,7 @@ class UserProfile(models.Model):
 class Device(models.Model):
     """``devices`` — 03 §4.3. One row per member per client install."""
 
+    public_id = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="devices")
 
     device_fingerprint = models.CharField(
@@ -463,10 +560,30 @@ class UserSession(models.Model):
         # account accessed from somewhere unexpected last month".
     )
 
-    refresh_token_hash = models.CharField(max_length=HASH_MAX_LENGTH)
+    family_id = models.UUIDField(default=uuid.uuid4, db_index=True, editable=False)
+    kind = models.CharField(
+        max_length=16, choices=SessionKind.choices, default=SessionKind.TOKEN, editable=False
+    )
+    browser_session_key_hash = models.CharField(
+        max_length=64, blank=True, default="", editable=False
+    )
+    browser_credential_state = models.CharField(
+        max_length=64, blank=True, default="", editable=False
+    )
+    mfa_verified = models.BooleanField(default=False, editable=False)
+    mfa_version = models.PositiveIntegerField(default=0, editable=False)
+    authorization_version = models.PositiveBigIntegerField(default=0, editable=False)
+    refresh_token_hash = models.CharField(max_length=HASH_MAX_LENGTH, unique=True)
     issued_at = models.DateTimeField(default=timezone.now)
     expires_at = models.DateTimeField()
     revoked_at = models.DateTimeField(null=True, blank=True, default=None)
+    revoked_reason = models.CharField(
+        max_length=24,
+        choices=SessionRevocationReason.choices,
+        blank=True,
+        default="",
+        help_text="Empty only for legacy rows; ROTATED is the replay-detection marker.",
+    )
     last_used_at = models.DateTimeField(null=True, blank=True, default=None)
 
     ip_address = models.GenericIPAddressField(
@@ -497,6 +614,17 @@ class UserSession(models.Model):
             models.CheckConstraint(
                 condition=Q(expires_at__gt=models.F("issued_at")),
                 name="user_sessions_expires_after_issued",
+            ),
+            models.CheckConstraint(
+                condition=Q(
+                    kind=SessionKind.TOKEN, browser_session_key_hash="", browser_credential_state=""
+                )
+                | (
+                    Q(kind=SessionKind.BROWSER, mfa_verified=True)
+                    & ~Q(browser_session_key_hash="")
+                    & ~Q(browser_credential_state="")
+                ),
+                name="user_sessions_browser_binding",
             ),
         ]
 

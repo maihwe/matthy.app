@@ -9,10 +9,8 @@ Every view declares ``permission_classes`` explicitly. The static ratchet in
 ``tests/security/test_static_guarantees.py`` fails the build otherwise, and
 that is the point — ``AllowAny`` is a decision here, not an omission.
 
-Writes are absent deliberately. 04 §4 guards them with
-``platform.manage_locations``, which is a row in S5's permission catalogue;
-until that catalogue exists there is no honest check to apply, and a temporary
-``is_staff`` would be a second authorisation model to remove later.
+L1 group views wrap these public reads with ``platform.manage_locations`` writes
+at the project router. Keeping that wrapper in L1 preserves the layer dependency.
 """
 
 from __future__ import annotations

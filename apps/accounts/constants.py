@@ -19,6 +19,8 @@ __all__ = [
     "DevicePlatform",
     "Gender",
     "OTPPurpose",
+    "SessionKind",
+    "SessionRevocationReason",
     "TokenPurpose",
     "TwoFactorMethod",
     "VerificationStatus",
@@ -93,6 +95,11 @@ class OTPPurpose(models.TextChoices):
     TRANSACTION = "TRANSACTION", "Transaction authorisation"
 
 
+class SessionKind(models.TextChoices):
+    TOKEN = "TOKEN", "Access and refresh tokens"
+    BROWSER = "BROWSER", "Browser session"
+
+
 class TokenPurpose(models.TextChoices):
     """What a verification token authorises (03 §4.4)."""
 
@@ -113,3 +120,16 @@ class DevicePlatform(models.TextChoices):
     IOS = "IOS", "iOS"
     WEB = "WEB", "Web"
     USSD = "USSD", "USSD"
+
+
+class SessionRevocationReason(models.TextChoices):
+    """Rotation is replay-sensitive; an explicit sign-out is a terminal rejection."""
+
+    ROTATED = "ROTATED", "Rotated"
+    REVOKED = "REVOKED", "Revoked"
+    LOGOUT = "LOGOUT", "Signed out"
+    DEVICE_REVOKED = "DEVICE_REVOKED", "Device revoked"
+    CREDENTIAL_CHANGED = "CREDENTIAL_CHANGED", "Credential changed"
+    EXPIRED = "EXPIRED", "Expired"
+    ACCOUNT_INACTIVE = "ACCOUNT_INACTIVE", "Account inactive"
+    TOKEN_REUSE = "TOKEN_REUSE", "Token reuse detected"

@@ -1,0 +1,7 @@
+{% extends "admin/browser_base.html" %}
+{% block content %}
+<h1>{{ title }}</h1>
+<p>MFA is enabled. Save these codes in a secure place before continuing. Each code works once, and this page shows them only now.</p>
+<ul>{% for code in recovery_codes %}<li><code>{{ code }}</code></li>{% endfor %}</ul>
+<p><a href="{{ login_url }}">Sign in with MFA</a></p>
+{% endblock %}

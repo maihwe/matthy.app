@@ -105,7 +105,7 @@ from apps.accounts.services.errors import (
 )
 from config import ratelimit
 
-__all__ = ["authenticate"]
+__all__ = ["authenticate", "resolve_identifier"]
 
 logger = logging.getLogger(__name__)
 
@@ -230,6 +230,12 @@ def _spend_a_hash(password: str) -> None:
     worse of the two, because a lockout is *proof* the account exists.
     """
     User().set_password(password)
+
+
+def resolve_identifier(raw: str) -> tuple[User | None, str]:
+    """Recovery uses the same normalization and account lookup as login."""
+    identifier = _read(raw)
+    return _find(identifier), identifier.normalised
 
 
 def _bucket(identifier: _Identifier, source_ip: str | None) -> str:

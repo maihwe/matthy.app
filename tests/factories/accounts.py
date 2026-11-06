@@ -125,7 +125,7 @@ class UserSessionFactory(DjangoModelFactory[UserSession]):
         model = UserSession
 
     user = factory.SubFactory(UserFactory)
-    device = factory.SubFactory(DeviceFactory)
+    device = factory.SubFactory(DeviceFactory, user=factory.SelfAttribute("..user"))
     refresh_token_hash = factory.Sequence(lambda n: f"hashed-refresh-token-{n:08d}")
 
     @factory.lazy_attribute

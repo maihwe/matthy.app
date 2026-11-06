@@ -23,3 +23,7 @@ EMAIL_PORT = env_int("EMAIL_PORT", default=1025)
 EMAIL_USE_TLS = False
 
 INTERNAL_IPS = ["127.0.0.1"]
+
+PHONE_VERIFICATION_BACKEND = env(
+    "PHONE_VERIFICATION_BACKEND", default="config.phone_verification.LocalEmailCapture"
+)

@@ -119,7 +119,7 @@ strict = true
 # `list_display` entry is a plain string and every `has_*_permission` is
 # annotated explicitly. The classes stay unsubscripted and the checker is told to
 # accept it, for these modules only.
-module = ["apps.accounts.admin", "apps.audit.admin", "apps.locations.admin"]
+module = ["apps.accounts.admin", "apps.audit.admin", "apps.locations.admin", "apps.groups.admin"]
 disallow_any_generics = false
 
 [[tool.mypy.overrides]]

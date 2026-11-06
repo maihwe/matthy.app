@@ -79,6 +79,8 @@ class UserAdmin(admin.ModelAdmin):
         "public_id",
         "password",
         "pin_hash",
+        "two_factor_enabled",
+        "two_factor_method",
         "date_registered",
         "last_login",
     )
