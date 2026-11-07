@@ -1,0 +1,1031 @@
+{
+  "date": "2026-11-07",
+  "status": "draft_preserved_for_future_funded_deployment",
+  "deployment_status": "deferred_no_budget",
+  "owner_current_monthly_hosting_budget_usd": "0.00",
+  "region": "eu-west-1",
+  "currency": "USD",
+  "hours_per_month": 730,
+  "web_tasks": 1,
+  "web_vcpu_per_task": 0.5,
+  "web_memory_gb_per_task": 1,
+  "high_availability": false,
+  "core_monthly_usd": "135.32",
+  "usage_and_operations_allowance_usd": "32.07",
+  "planning_monthly_usd": "167.39",
+  "catalog": {
+    "fargate_cpu": {
+      "source": "AWS Price List Query API",
+      "service_code": "AmazonECS",
+      "sku": "K4EXFQ5YFQCP98EN",
+      "attributes": {
+        "regionCode": "eu-west-1",
+        "servicecode": "AmazonECS",
+        "tenancy": "Shared",
+        "usagetype": "EU-Fargate-vCPU-Hours:perCPU",
+        "locationType": "AWS Region",
+        "location": "EU (Ireland)",
+        "servicename": "Amazon Elastic Container Service",
+        "cputype": "perCPU",
+        "operation": ""
+      },
+      "unit": "hours",
+      "usd": "0.0404800000",
+      "effective_date": "2026-10-01T00:00:00Z",
+      "begin_range": "0",
+      "end_range": "Inf",
+      "description": "AWS Fargate - vCPU  - EU (Ireland)",
+      "query_filters": [
+        {
+          "Type": "TERM_MATCH",
+          "Field": "regionCode",
+          "Value": "eu-west-1"
+        },
+        {
+          "Type": "TERM_MATCH",
+          "Field": "usagetype",
+          "Value": "EU-Fargate-vCPU-Hours:perCPU"
+        }
+      ],
+      "pricing_endpoint_region": "us-east-1"
+    },
+    "fargate_memory": {
+      "source": "AWS Price List Query API",
+      "service_code": "AmazonECS",
+      "sku": "UP5ETC3QSW2QZGEY",
+      "attributes": {
+        "regionCode": "eu-west-1",
+        "servicecode": "AmazonECS",
+        "tenancy": "Shared",
+        "usagetype": "EU-Fargate-GB-Hours",
+        "locationType": "AWS Region",
+        "location": "EU (Ireland)",
+        "servicename": "Amazon Elastic Container Service",
+        "memorytype": "perGB",
+        "operation": ""
+      },
+      "unit": "hours",
+      "usd": "0.0044450000",
+      "effective_date": "2026-10-01T00:00:00Z",
+      "begin_range": "0",
+      "end_range": "Inf",
+      "description": "AWS Fargate - Memory  - EU (Ireland)",
+      "query_filters": [
+        {
+          "Type": "TERM_MATCH",
+          "Field": "regionCode",
+          "Value": "eu-west-1"
+        },
+        {
+          "Type": "TERM_MATCH",
+          "Field": "usagetype",
+          "Value": "EU-Fargate-GB-Hours"
+        }
+      ],
+      "pricing_endpoint_region": "us-east-1"
+    },
+    "rds_storage": {
+      "source": "AWS Price List Query API",
+      "service_code": "AmazonRDS",
+      "sku": "S32D6FQC3879C222",
+      "attributes": {
+        "volumeType": "General Purpose-GP3",
+        "engineCode": "14",
+        "usagetype": "EU-RDS:GP3-Storage",
+        "locationType": "AWS Region",
+        "maxVolumeSize": "16 TB",
+        "databaseEngine": "PostgreSQL",
+        "storageMedia": "SSD",
+        "regionCode": "eu-west-1",
+        "servicecode": "AmazonRDS",
+        "deploymentOption": "Single-AZ",
+        "location": "EU (Ireland)",
+        "servicename": "Amazon Relational Database Service",
+        "operation": "CreateDBInstance:0014",
+        "minVolumeSize": "5 GB"
+      },
+      "unit": "GB-Mo",
+      "usd": "0.1270000000",
+      "effective_date": "2026-10-01T00:00:00Z",
+      "begin_range": "0",
+      "end_range": "Inf",
+      "description": "$0.127 per GB-month of provisioned GP3 storage running PostgreSQL",
+      "query_filters": [
+        {
+          "Type": "TERM_MATCH",
+          "Field": "regionCode",
+          "Value": "eu-west-1"
+        },
+        {
+          "Type": "TERM_MATCH",
+          "Field": "usagetype",
+          "Value": "EU-RDS:GP3-Storage"
+        },
+        {
+          "Type": "TERM_MATCH",
+          "Field": "databaseEngine",
+          "Value": "PostgreSQL"
+        },
+        {
+          "Type": "TERM_MATCH",
+          "Field": "deploymentOption",
+          "Value": "Single-AZ"
+        }
+      ],
+      "pricing_endpoint_region": "us-east-1"
+    },
+    "alb_hour": {
+      "source": "AWS Price List Query API",
+      "service_code": "AWSELB",
+      "sku": "T29JAP5UEZ7HXAM7",
+      "attributes": {
+        "regionCode": "eu-west-1",
+        "servicecode": "AWSELB",
+        "groupDescription": "LoadBalancer hourly usage by Application Load Balancer",
+        "usagetype": "EU-LoadBalancerUsage",
+        "locationType": "AWS Region",
+        "location": "EU (Ireland)",
+        "servicename": "Elastic Load Balancing",
+        "operation": "LoadBalancing:Application",
+        "group": "ELB:Balancing"
+      },
+      "unit": "Hrs",
+      "usd": "0.0252000000",
+      "effective_date": "2026-11-01T00:00:00Z",
+      "begin_range": "0",
+      "end_range": "Inf",
+      "description": "$0.0252 per Application LoadBalancer-hour (or partial hour)",
+      "query_filters": [
+        {
+          "Type": "TERM_MATCH",
+          "Field": "regionCode",
+          "Value": "eu-west-1"
+        },
+        {
+          "Type": "TERM_MATCH",
+          "Field": "usagetype",
+          "Value": "EU-LoadBalancerUsage"
+        },
+        {
+          "Type": "TERM_MATCH",
+          "Field": "productFamily",
+          "Value": "Load Balancer-Application"
+        }
+      ],
+      "pricing_endpoint_region": "us-east-1"
+    },
+    "alb_lcu": {
+      "source": "AWS Price List Query API",
+      "service_code": "AWSELB",
+      "sku": "YE8QE7GMG9794PDX",
+      "attributes": {
+        "regionCode": "eu-west-1",
+        "servicecode": "AWSELB",
+        "groupDescription": "Used Application Load Balancer capacity units-hr",
+        "usagetype": "EU-LCUUsage",
+        "locationType": "AWS Region",
+        "location": "EU (Ireland)",
+        "servicename": "Elastic Load Balancing",
+        "operation": "LoadBalancing:Application",
+        "group": "ELB:Balancing"
+      },
+      "unit": "LCU-Hrs",
+      "usd": "0.0080000000",
+      "effective_date": "2026-11-01T00:00:00Z",
+      "begin_range": "0",
+      "end_range": "Inf",
+      "description": "$0.008 per used Application load balancer capacity unit-hour (or partial hour)",
+      "query_filters": [
+        {
+          "Type": "TERM_MATCH",
+          "Field": "regionCode",
+          "Value": "eu-west-1"
+        },
+        {
+          "Type": "TERM_MATCH",
+          "Field": "usagetype",
+          "Value": "EU-LCUUsage"
+        },
+        {
+          "Type": "TERM_MATCH",
+          "Field": "productFamily",
+          "Value": "Load Balancer-Application"
+        }
+      ],
+      "pricing_endpoint_region": "us-east-1"
+    },
+    "nat_hour": {
+      "source": "AWS Price List Query API",
+      "service_code": "AmazonEC2",
+      "sku": "KFNSSCHWD43WZK2R",
+      "attributes": {
+        "regionCode": "eu-west-1",
+        "servicecode": "AmazonEC2",
+        "groupDescription": "Hourly charge for NAT Gateways",
+        "usagetype": "EU-NatGateway-Hours",
+        "locationType": "AWS Region",
+        "location": "EU (Ireland)",
+        "servicename": "Amazon Elastic Compute Cloud",
+        "operation": "NatGateway",
+        "group": "NGW:NatGateway"
+      },
+      "unit": "Hrs",
+      "usd": "0.0480000000",
+      "effective_date": "2026-11-01T00:00:00Z",
+      "begin_range": "0",
+      "end_range": "Inf",
+      "description": "$0.048 per NAT Gateway Hour",
+      "query_filters": [
+        {
+          "Type": "TERM_MATCH",
+          "Field": "regionCode",
+          "Value": "eu-west-1"
+        },
+        {
+          "Type": "TERM_MATCH",
+          "Field": "usagetype",
+          "Value": "EU-NatGateway-Hours"
+        }
+      ],
+      "pricing_endpoint_region": "us-east-1"
+    },
+    "nat_data": {
+      "source": "AWS Price List Query API",
+      "service_code": "AmazonEC2",
+      "sku": "DTH8595YVPFXV226",
+      "attributes": {
+        "regionCode": "eu-west-1",
+        "servicecode": "AmazonEC2",
+        "groupDescription": "Charge for per GB data processed by NatGateways",
+        "usagetype": "EU-NatGateway-Bytes",
+        "locationType": "AWS Region",
+        "location": "EU (Ireland)",
+        "servicename": "Amazon Elastic Compute Cloud",
+        "operation": "NatGateway",
+        "group": "NGW:NatGateway"
+      },
+      "unit": "GB",
+      "usd": "0.0480000000",
+      "effective_date": "2026-11-01T00:00:00Z",
+      "begin_range": "0",
+      "end_range": "Inf",
+      "description": "$0.048 per GB Data Processed by NAT Gateways",
+      "query_filters": [
+        {
+          "Type": "TERM_MATCH",
+          "Field": "regionCode",
+          "Value": "eu-west-1"
+        },
+        {
+          "Type": "TERM_MATCH",
+          "Field": "usagetype",
+          "Value": "EU-NatGateway-Bytes"
+        }
+      ],
+      "pricing_endpoint_region": "us-east-1"
+    },
+    "public_ipv4": {
+      "source": "AWS Price List Query API",
+      "service_code": "AmazonVPC",
+      "sku": "CNZ4XSXPRJXGA4ZF",
+      "attributes": {
+        "regionCode": "eu-west-1",
+        "servicecode": "AmazonVPC",
+        "groupDescription": "Hourly charge for In-use Public IPv4 Addresses",
+        "usagetype": "EU-PublicIPv4:InUseAddress",
+        "locationType": "AWS Region",
+        "location": "EU (Ireland)",
+        "servicename": "Amazon Virtual Private Cloud",
+        "operation": "",
+        "group": "VPCPublicIPv4Address"
+      },
+      "unit": "Hrs",
+      "usd": "0.0050000000",
+      "effective_date": "2026-11-01T00:00:00Z",
+      "begin_range": "0",
+      "end_range": "Inf",
+      "description": "$0.005 per In-use public IPv4 address per hour",
+      "query_filters": [
+        {
+          "Type": "TERM_MATCH",
+          "Field": "regionCode",
+          "Value": "eu-west-1"
+        },
+        {
+          "Type": "TERM_MATCH",
+          "Field": "usagetype",
+          "Value": "EU-PublicIPv4:InUseAddress"
+        }
+      ],
+      "pricing_endpoint_region": "us-east-1"
+    },
+    "logs_ingest": {
+      "source": "AWS Price List Query API",
+      "service_code": "AmazonCloudWatch",
+      "sku": "KJBTQPDHW2H92B8Y",
+      "attributes": {
+        "regionCode": "eu-west-1",
+        "servicecode": "AmazonCloudWatch",
+        "groupDescription": "Existing system, application, and custom log files",
+        "usagetype": "EU-DataProcessing-Bytes",
+        "locationType": "AWS Region",
+        "location": "EU (Ireland)",
+        "servicename": "AmazonCloudWatch",
+        "operation": "PutLogEvents",
+        "version": "Current",
+        "group": "Ingested Logs",
+        "logsDestination": "Amazon CloudWatch Logs"
+      },
+      "unit": "GB",
+      "usd": "0.5700000000",
+      "effective_date": "2026-11-01T00:00:00Z",
+      "begin_range": "0",
+      "end_range": "Inf",
+      "description": "$0.57 per GB custom log data ingested in Standard log class - EU (Ireland)",
+      "query_filters": [
+        {
+          "Type": "TERM_MATCH",
+          "Field": "regionCode",
+          "Value": "eu-west-1"
+        },
+        {
+          "Type": "TERM_MATCH",
+          "Field": "usagetype",
+          "Value": "EU-DataProcessing-Bytes"
+        }
+      ],
+      "pricing_endpoint_region": "us-east-1"
+    },
+    "logs_storage": {
+      "source": "AWS Price List Query API",
+      "service_code": "AmazonCloudWatch",
+      "sku": "M93YPPU987S2T6U9",
+      "attributes": {
+        "storageMedia": "Amazon S3",
+        "regionCode": "eu-west-1",
+        "servicecode": "AmazonCloudWatch",
+        "groupDescription": "Amazon CloudWatch Logs Storage Current version",
+        "usagetype": "EU-TimedStorage-ByteHrs",
+        "locationType": "AWS Region",
+        "location": "EU (Ireland)",
+        "servicename": "AmazonCloudWatch",
+        "operation": "",
+        "version": "Current",
+        "group": "Amazon CloudWatch Standard Storage pricing current"
+      },
+      "unit": "GB-Mo",
+      "usd": "0.0300000000",
+      "effective_date": "2026-11-01T00:00:00Z",
+      "begin_range": "0",
+      "end_range": "Inf",
+      "description": "$0.03 per GB-mo of log storage - EU (Ireland)",
+      "query_filters": [
+        {
+          "Type": "TERM_MATCH",
+          "Field": "regionCode",
+          "Value": "eu-west-1"
+        },
+        {
+          "Type": "TERM_MATCH",
+          "Field": "usagetype",
+          "Value": "EU-TimedStorage-ByteHrs"
+        }
+      ],
+      "pricing_endpoint_region": "us-east-1"
+    },
+    "ecr_storage": {
+      "source": "AWS Price List Query API",
+      "service_code": "AmazonECR",
+      "sku": "4NWTEXUZBWQH8MDW",
+      "attributes": {
+        "regionCode": "eu-west-1",
+        "servicecode": "AmazonECR",
+        "usagetype": "EU-TimedStorage-ByteHrs",
+        "locationType": "AWS Region",
+        "storageType": "S3",
+        "location": "EU (Ireland)",
+        "servicename": "Amazon EC2 Container Registry (ECR)",
+        "operation": ""
+      },
+      "unit": "GB-Mo",
+      "usd": "0.1000000000",
+      "effective_date": "2025-11-01T00:00:00Z",
+      "begin_range": "0",
+      "end_range": "Inf",
+      "description": "$0.10 per GB-month of data storage",
+      "query_filters": [
+        {
+          "Type": "TERM_MATCH",
+          "Field": "regionCode",
+          "Value": "eu-west-1"
+        },
+        {
+          "Type": "TERM_MATCH",
+          "Field": "usagetype",
+          "Value": "EU-TimedStorage-ByteHrs"
+        }
+      ],
+      "pricing_endpoint_region": "us-east-1"
+    },
+    "secrets": {
+      "source": "AWS Price List Query API",
+      "service_code": "AWSSecretsManager",
+      "sku": "7XGGDB26HD68ED7A",
+      "attributes": {
+        "regionCode": "eu-west-1",
+        "servicecode": "AWSSecretsManager",
+        "usagetype": "EU-AWSSecretsManager-Secrets",
+        "locationType": "AWS Region",
+        "location": "EU (Ireland)",
+        "servicename": "AWS Secrets Manager",
+        "operation": "",
+        "group": "AWSSecretsManager-Secret"
+      },
+      "unit": "Secrets",
+      "usd": "0.4000000000",
+      "effective_date": "2025-07-01T00:00:00Z",
+      "begin_range": "0",
+      "end_range": "Inf",
+      "description": "$0.40 per Secret",
+      "query_filters": [
+        {
+          "Type": "TERM_MATCH",
+          "Field": "regionCode",
+          "Value": "eu-west-1"
+        }
+      ],
+      "pricing_endpoint_region": "us-east-1"
+    },
+    "dns_zone": {
+      "source": "AWS Price List Query API",
+      "service_code": "AmazonRoute53",
+      "sku": "KVPGEJE88UW8S779",
+      "attributes": {
+        "regionCode": "",
+        "servicecode": "AmazonRoute53",
+        "usagetype": "HostedZone",
+        "description": "Route53 Hosted Zone",
+        "locationType": "AWS Region",
+        "location": "Any",
+        "servicename": "Amazon Route 53",
+        "operation": ""
+      },
+      "unit": "HostedZone",
+      "usd": "0.5000000000",
+      "effective_date": "2026-11-01T00:00:00Z",
+      "begin_range": "0",
+      "end_range": "25",
+      "description": "$0.50 per Hosted Zone for the first 25 Hosted Zones",
+      "query_filters": [
+        {
+          "Type": "TERM_MATCH",
+          "Field": "usagetype",
+          "Value": "HostedZone"
+        }
+      ],
+      "pricing_endpoint_region": "us-east-1"
+    },
+    "rds_backup": {
+      "source": "AWS Price List Query API",
+      "service_code": "AmazonRDS",
+      "sku": "S4E2MMMTRUYQX32A",
+      "attributes": {
+        "storageMedia": "AmazonS3",
+        "engineCode": "14",
+        "regionCode": "eu-west-1",
+        "servicecode": "AmazonRDS",
+        "deploymentOption": "Single-AZ",
+        "usagetype": "EU-RDS:ChargedBackupUsage",
+        "locationType": "AWS Region",
+        "location": "EU (Ireland)",
+        "servicename": "Amazon Relational Database Service",
+        "operation": "CreateDBInstance:0014",
+        "databaseEngine": "PostgreSQL"
+      },
+      "unit": "GB-Mo",
+      "usd": "0.0950000000",
+      "effective_date": "2026-10-01T00:00:00Z",
+      "begin_range": "0",
+      "end_range": "Inf",
+      "description": "$0.095 per additional GB-month of backup storage exceeding free allocation running PostgreSQL",
+      "query_filters": [
+        {
+          "Type": "TERM_MATCH",
+          "Field": "regionCode",
+          "Value": "eu-west-1"
+        },
+        {
+          "Type": "TERM_MATCH",
+          "Field": "usagetype",
+          "Value": "EU-RDS:ChargedBackupUsage"
+        },
+        {
+          "Type": "TERM_MATCH",
+          "Field": "databaseEngine",
+          "Value": "PostgreSQL"
+        },
+        {
+          "Type": "TERM_MATCH",
+          "Field": "deploymentOption",
+          "Value": "Single-AZ"
+        }
+      ],
+      "pricing_endpoint_region": "us-east-1"
+    },
+    "cloudwatch_metrics": {
+      "source": "AWS Price List Query API",
+      "service_code": "AmazonCloudWatch",
+      "sku": "58YXNUN4MF8JD9ZA",
+      "attributes": {
+        "regionCode": "eu-west-1",
+        "servicecode": "AmazonCloudWatch",
+        "groupDescription": "CloudWatch Custom Metrics",
+        "usagetype": "EU-CW:MetricMonitorUsage",
+        "locationType": "AWS Region",
+        "location": "EU (Ireland)",
+        "servicename": "AmazonCloudWatch",
+        "operation": "",
+        "group": "Metric"
+      },
+      "unit": "Metrics",
+      "usd": "0.3000000000",
+      "effective_date": "2026-11-01T00:00:00Z",
+      "begin_range": "0",
+      "end_range": "10000",
+      "description": "$0.30 per metric-month for the first 10,000 metrics - EU (Ireland)",
+      "query_filters": [
+        {
+          "Type": "TERM_MATCH",
+          "Field": "regionCode",
+          "Value": "eu-west-1"
+        },
+        {
+          "Type": "TERM_MATCH",
+          "Field": "usagetype",
+          "Value": "EU-CW:MetricMonitorUsage"
+        }
+      ],
+      "pricing_endpoint_region": "us-east-1"
+    },
+    "internet_egress": {
+      "source": "AWS Price List Query API",
+      "service_code": "AWSDataTransfer",
+      "sku": "FSEU4E6BRE95JTX8",
+      "attributes": {
+        "fromLocationType": "AWS Region",
+        "toRegionCode": "",
+        "servicecode": "AWSDataTransfer",
+        "usagetype": "EU-DataTransfer-Out-Bytes",
+        "fromRegionCode": "eu-west-1",
+        "transferType": "AWS Outbound",
+        "servicename": "AWS Data Transfer",
+        "fromLocation": "EU (Ireland)",
+        "toLocationType": "Other",
+        "toLocation": "External",
+        "operation": ""
+      },
+      "unit": "GB",
+      "usd": "0.0900000000",
+      "effective_date": "2026-06-01T00:00:00Z",
+      "begin_range": "0",
+      "end_range": "10240",
+      "description": "$0.090 per GB - first 10 TB / month data transfer out beyond the global free tier",
+      "query_filters": [
+        {
+          "Type": "TERM_MATCH",
+          "Field": "usagetype",
+          "Value": "EU-DataTransfer-Out-Bytes"
+        }
+      ],
+      "pricing_endpoint_region": "us-east-1"
+    },
+    "cross_az_data": {
+      "source": "AWS Price List Query API",
+      "service_code": "AmazonEC2",
+      "sku": "392ZVSS2U58BJFPV",
+      "attributes": {
+        "fromLocationType": "AWS Region",
+        "toRegionCode": "eu-west-1",
+        "servicecode": "AmazonEC2",
+        "usagetype": "EU-DataTransfer-Regional-Bytes",
+        "fromRegionCode": "eu-west-1",
+        "transferType": "IntraRegion",
+        "servicename": "Amazon Elastic Compute Cloud",
+        "fromLocation": "EU (Ireland)",
+        "toLocationType": "AWS Region",
+        "toLocation": "EU (Ireland)",
+        "operation": ""
+      },
+      "unit": "GB",
+      "usd": "0.0100000000",
+      "effective_date": "2026-11-01T00:00:00Z",
+      "begin_range": "0",
+      "end_range": "Inf",
+      "description": "$0.010 per GB Regional Data Transfer - in/out/between AZs or using public IP or Elastic IP addresses",
+      "query_filters": [
+        {
+          "Type": "TERM_MATCH",
+          "Field": "usagetype",
+          "Value": "EU-DataTransfer-Regional-Bytes"
+        }
+      ],
+      "pricing_endpoint_region": "us-east-1"
+    },
+    "rds_instance": {
+      "source": "AWS Price List Query API",
+      "service_code": "AmazonRDS",
+      "sku": "2D532CNMF9JP76WX",
+      "attributes": {
+        "engineCode": "14",
+        "instanceTypeFamily": "T4G",
+        "memory": "2 GiB",
+        "vcpu": "2",
+        "instanceType": "db.t4g.small",
+        "unbundledLicensing": "FALSE",
+        "usagetype": "EU-InstanceUsage:db.t4g.small",
+        "locationType": "AWS Region",
+        "storage": "EBS Only",
+        "normalizationSizeFactor": "1",
+        "instanceFamily": "General purpose",
+        "databaseEngine": "PostgreSQL",
+        "regionCode": "eu-west-1",
+        "servicecode": "AmazonRDS",
+        "physicalProcessor": "AWS Graviton2",
+        "licenseModel": "No license required",
+        "currentGeneration": "Yes",
+        "networkPerformance": "Up to 5 Gigabit",
+        "deploymentOption": "Single-AZ",
+        "location": "EU (Ireland)",
+        "servicename": "Amazon Relational Database Service",
+        "processorArchitecture": "64-bit",
+        "operation": "CreateDBInstance:0014"
+      },
+      "unit": "Hrs",
+      "usd": "0.0350000000",
+      "effective_date": "2026-10-01T00:00:00Z",
+      "begin_range": "0",
+      "end_range": "Inf",
+      "description": "$ 0.035 per RDS db.t4g.small Single-AZ instance hour (or partial hour) running PostgreSQL",
+      "query_filters": [
+        {
+          "Type": "TERM_MATCH",
+          "Field": "regionCode",
+          "Value": "eu-west-1"
+        },
+        {
+          "Type": "TERM_MATCH",
+          "Field": "instanceType",
+          "Value": "db.t4g.small"
+        },
+        {
+          "Type": "TERM_MATCH",
+          "Field": "databaseEngine",
+          "Value": "PostgreSQL"
+        },
+        {
+          "Type": "TERM_MATCH",
+          "Field": "deploymentOption",
+          "Value": "Single-AZ"
+        }
+      ],
+      "pricing_endpoint_region": "us-east-1"
+    },
+    "redis_node": {
+      "source": "AWS Price List Query API",
+      "service_code": "AmazonElastiCache",
+      "sku": "Q8MBFSX7FCA3HNJW",
+      "attributes": {
+        "memory": "1.37 GiB",
+        "vcpu": "2",
+        "instanceType": "cache.t4g.small",
+        "usagetype": "EU-NodeUsage:cache.t4g.small",
+        "locationType": "AWS Region",
+        "normalizationSizeFactor": "1",
+        "instanceFamily": "Standard",
+        "cacheEngine": "Redis",
+        "regionCode": "eu-west-1",
+        "servicecode": "AmazonElastiCache",
+        "currentGeneration": "Yes",
+        "networkPerformance": "Up to 5 Gigabit",
+        "location": "EU (Ireland)",
+        "servicename": "Amazon ElastiCache",
+        "operation": "CreateCacheCluster:0002"
+      },
+      "unit": "Hrs",
+      "usd": "0.0340000000",
+      "effective_date": "2026-10-01T00:00:00Z",
+      "begin_range": "0",
+      "end_range": "Inf",
+      "description": "$0.034 per T4G Small Cache node-hour (or partial hour) running Redis",
+      "query_filters": [
+        {
+          "Type": "TERM_MATCH",
+          "Field": "regionCode",
+          "Value": "eu-west-1"
+        },
+        {
+          "Type": "TERM_MATCH",
+          "Field": "instanceType",
+          "Value": "cache.t4g.small"
+        },
+        {
+          "Type": "TERM_MATCH",
+          "Field": "cacheEngine",
+          "Value": "Redis"
+        }
+      ],
+      "pricing_endpoint_region": "us-east-1"
+    },
+    "secrets_api": {
+      "source": "AWS Price List Query API",
+      "service_code": "AWSSecretsManager",
+      "sku": "EGBHGCHDFAQWM4B6",
+      "attributes": {
+        "regionCode": "eu-west-1",
+        "servicecode": "AWSSecretsManager",
+        "usagetype": "EU-AWSSecretsManager-APIRequests",
+        "locationType": "AWS Region",
+        "location": "EU (Ireland)",
+        "servicename": "AWS Secrets Manager",
+        "operation": "",
+        "group": "AWSSecretsManager-APIRequest"
+      },
+      "unit": "API Requests",
+      "usd": "0.0000050000",
+      "effective_date": "2025-07-01T00:00:00Z",
+      "begin_range": "0",
+      "end_range": "Inf",
+      "description": "$0.05 per 10000 API Requests",
+      "query_filters": [
+        {
+          "Type": "TERM_MATCH",
+          "Field": "regionCode",
+          "Value": "eu-west-1"
+        }
+      ],
+      "pricing_endpoint_region": "us-east-1"
+    },
+    "redis_backup": {
+      "source": "Official ElastiCache pricing page",
+      "source_url": "https://aws.amazon.com/elasticache/pricing/",
+      "unit": "GiB-Mo",
+      "usd": "0.0850000000",
+      "description": "ElastiCache backup storage in all AWS Regions",
+      "sku": null
+    }
+  },
+  "line_items": [
+    {
+      "id": "web_cpu",
+      "name": "Fargate web CPU",
+      "rate_id": "fargate_cpu",
+      "quantity": 365,
+      "quantity_unit": "vCPU-hours",
+      "category": "core",
+      "monthly_cost_usd": "14.78"
+    },
+    {
+      "id": "web_memory",
+      "name": "Fargate web memory",
+      "rate_id": "fargate_memory",
+      "quantity": 730,
+      "quantity_unit": "GB-hours",
+      "category": "core",
+      "monthly_cost_usd": "3.24"
+    },
+    {
+      "id": "postgres",
+      "name": "PostgreSQL db.t4g.small",
+      "rate_id": "rds_instance",
+      "quantity": 730,
+      "quantity_unit": "instance-hours",
+      "category": "core",
+      "monthly_cost_usd": "25.55"
+    },
+    {
+      "id": "postgres_storage",
+      "name": "PostgreSQL gp3 storage",
+      "rate_id": "rds_storage",
+      "quantity": 20,
+      "quantity_unit": "GB-months",
+      "category": "core",
+      "monthly_cost_usd": "2.54"
+    },
+    {
+      "id": "redis",
+      "name": "Redis cache.t4g.small",
+      "rate_id": "redis_node",
+      "quantity": 730,
+      "quantity_unit": "node-hours",
+      "category": "core",
+      "monthly_cost_usd": "24.82"
+    },
+    {
+      "id": "nat",
+      "name": "NAT gateway",
+      "rate_id": "nat_hour",
+      "quantity": 730,
+      "quantity_unit": "gateway-hours",
+      "category": "core",
+      "monthly_cost_usd": "35.04"
+    },
+    {
+      "id": "load_balancer",
+      "name": "Application Load Balancer",
+      "rate_id": "alb_hour",
+      "quantity": 730,
+      "quantity_unit": "load-balancer-hours",
+      "category": "core",
+      "monthly_cost_usd": "18.40"
+    },
+    {
+      "id": "ipv4",
+      "name": "Public IPv4 addresses",
+      "rate_id": "public_ipv4",
+      "quantity": 2190,
+      "quantity_unit": "address-hours",
+      "category": "core",
+      "monthly_cost_usd": "10.95"
+    },
+    {
+      "id": "alb_capacity",
+      "name": "ALB capacity allowance",
+      "rate_id": "alb_lcu",
+      "quantity": 730,
+      "quantity_unit": "LCU-hours",
+      "category": "allowance",
+      "monthly_cost_usd": "5.84"
+    },
+    {
+      "id": "metrics",
+      "name": "Container Insights metric allowance",
+      "rate_id": "cloudwatch_metrics",
+      "quantity": 50,
+      "quantity_unit": "metric-months",
+      "category": "allowance",
+      "monthly_cost_usd": "15.00"
+    },
+    {
+      "id": "logs",
+      "name": "Log ingestion allowance",
+      "rate_id": "logs_ingest",
+      "quantity": 5,
+      "quantity_unit": "GB",
+      "category": "allowance",
+      "monthly_cost_usd": "2.85"
+    },
+    {
+      "id": "log_retention",
+      "name": "Retained log storage allowance",
+      "rate_id": "logs_storage",
+      "quantity": 5,
+      "quantity_unit": "GB-months",
+      "category": "allowance",
+      "monthly_cost_usd": "0.15"
+    },
+    {
+      "id": "database_backups",
+      "name": "RDS backup storage above included allocation",
+      "rate_id": "rds_backup",
+      "quantity": 40,
+      "quantity_unit": "GB-months",
+      "category": "allowance",
+      "monthly_cost_usd": "3.80"
+    },
+    {
+      "id": "cache_backups",
+      "name": "Redis backup storage allowance",
+      "rate_id": "redis_backup",
+      "quantity": 10,
+      "quantity_unit": "GiB-months",
+      "category": "allowance",
+      "monthly_cost_usd": "0.85"
+    },
+    {
+      "id": "nat_processing",
+      "name": "NAT data-processing allowance",
+      "rate_id": "nat_data",
+      "quantity": 10,
+      "quantity_unit": "GB",
+      "category": "allowance",
+      "monthly_cost_usd": "0.48"
+    },
+    {
+      "id": "internet",
+      "name": "Billable internet egress above included allowance",
+      "rate_id": "internet_egress",
+      "quantity": 10,
+      "quantity_unit": "GB",
+      "category": "allowance",
+      "monthly_cost_usd": "0.90"
+    },
+    {
+      "id": "regional",
+      "name": "Billable regional transfer allowance",
+      "rate_id": "cross_az_data",
+      "quantity": 20,
+      "quantity_unit": "GB",
+      "category": "allowance",
+      "monthly_cost_usd": "0.20"
+    },
+    {
+      "id": "images",
+      "name": "ECR image storage allowance",
+      "rate_id": "ecr_storage",
+      "quantity": 5,
+      "quantity_unit": "GB-months",
+      "category": "allowance",
+      "monthly_cost_usd": "0.50"
+    },
+    {
+      "id": "application_and_rds_secrets",
+      "name": "Two managed secrets",
+      "rate_id": "secrets",
+      "quantity": 2,
+      "quantity_unit": "secret-months",
+      "category": "allowance",
+      "monthly_cost_usd": "0.80"
+    },
+    {
+      "id": "secret_requests",
+      "name": "Secrets Manager API allowance",
+      "rate_id": "secrets_api",
+      "quantity": 10000,
+      "quantity_unit": "requests",
+      "category": "allowance",
+      "monthly_cost_usd": "0.05"
+    },
+    {
+      "id": "dns",
+      "name": "Optional Route 53 hosted zone",
+      "rate_id": "dns_zone",
+      "quantity": 1,
+      "quantity_unit": "hosted-zone-months",
+      "category": "allowance",
+      "monthly_cost_usd": "0.50"
+    },
+    {
+      "id": "extra_web_cpu",
+      "name": "Four deployment-overlap web task hours: CPU",
+      "rate_id": "fargate_cpu",
+      "quantity": 2,
+      "quantity_unit": "vCPU-hours",
+      "category": "allowance",
+      "monthly_cost_usd": "0.08"
+    },
+    {
+      "id": "extra_web_memory",
+      "name": "Four deployment-overlap web task hours: memory",
+      "rate_id": "fargate_memory",
+      "quantity": 4,
+      "quantity_unit": "GB-hours",
+      "category": "allowance",
+      "monthly_cost_usd": "0.02"
+    },
+    {
+      "id": "migration_cpu",
+      "name": "Four small bootstrap/migration task hours: CPU",
+      "rate_id": "fargate_cpu",
+      "quantity": 1,
+      "quantity_unit": "vCPU-hours",
+      "category": "allowance",
+      "monthly_cost_usd": "0.04"
+    },
+    {
+      "id": "migration_memory",
+      "name": "Four small bootstrap/migration task hours: memory",
+      "rate_id": "fargate_memory",
+      "quantity": 2,
+      "quantity_unit": "GB-hours",
+      "category": "allowance",
+      "monthly_cost_usd": "0.01"
+    }
+  ],
+  "assumptions": [
+    "730 hours per month; one x86-64 Linux web task with 0.5 vCPU and 1 GB memory.",
+    "Single-AZ PostgreSQL db.t4g.small with 20 GB gp3 storage; one Redis OSS 7.1 cache.t4g.small node.",
+    "One NAT gateway and one internet-facing ALB in two availability zones; at least three public IPv4 addresses.",
+    "On-demand rates; no reservation, Savings Plan, support-plan fee, credits, or tax adjustment.",
+    "Usage quantities are planning allowances, not measured traffic or a spending cap.",
+    "Optional Route 53 zone uses the first-25-zone price; an existing external DNS provider can remove that row.",
+    "10 GB internet egress and 40 GB-month RDS backup inputs are billable quantities after their included allocations.",
+    "50 custom metric-months budget for standard Container Insights; actual emitted metric count and log volume must be measured.",
+    "Four extra web task hours for release overlap and four 0.25-vCPU/0.5-GB task hours for bootstrap or migration.",
+    "RDS surplus CPU credits, storage autoscaling above 20 GB, extra replicas/tasks, SMS/email, domain registration, custom dashboards/queries/alarms and paid support are excluded."
+  ],
+  "preflight": {
+    "checked_on": "2026-11-07",
+    "region": "eu-west-1",
+    "bootstrap_template_validation": "passed",
+    "staging_template_validation": "passed",
+    "postgres_engine_version": "16.15",
+    "postgres_engine_version_status": "available",
+    "existing_project_cloudformation_stacks": []
+  },
+  "references": [
+    "https://docs.aws.amazon.com/aws-cost-management/latest/APIReference/API_pricing_GetProducts.html",
+    "https://aws.amazon.com/elasticache/pricing/",
+    "https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/Container-Insights-metrics-ECS.html",
+    "https://docs.aws.amazon.com/AmazonElastiCache/latest/dg/engine-versions.html"
+  ]
+}
