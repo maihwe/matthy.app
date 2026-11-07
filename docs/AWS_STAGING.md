@@ -10,29 +10,78 @@ The existing production container passed CI and actual Docker/runtime checks in
 [PR #5](https://github.com/maihwe/matthy.app/pull/5), merged into `develop` at
 `c018875064b2b8d715027e2419ce3e97b73485bf`. The AWS preparation builds on that work.
 
-No AWS CLI, credentials, profile or account connection was found in this workspace.
-No AWS stack, registry, database, cache, certificate or paid infrastructure has
-been provisioned. No staged account/group walkthrough has been performed.
+On 2026-11-07, AWS CLI 2.39.3 and the `matthy-staging` operator profile were
+authenticated and the account was verified against the saved staging account ID.
+The temporary login configuration/cache live outside the repository; recheck
+access when resuming. Ireland (`eu-west-1`) is provisional for validation/pricing.
+No non-deleted `ihweza-staging*` CloudFormation stacks were found there. This work
+has not provisioned paid infrastructure or performed a hosted account/group
+walkthrough.
+
+A limited read-only check on 2026-11-07 also found no VPC with the project Name
+tag, RDS instance, Redis replication group, ECS cluster or ECR repository named
+`ihweza-staging` in Ireland. This checks the prepared project's identifiers in
+one region; it does not establish the entire account's billing state.
+
+The dated [cost estimate](AWS_STAGING_COST_ESTIMATE.md) records $135.32/month of
+core hosting and a $167.39/month planning example with operations/usage allowances,
+before tax and credits. On 2026-11-07, the owner reported no funds available: the
+current hosting budget is **$0** and paid AWS provisioning is **deferred**. Keep
+the configuration and estimate for later. Region, hostname and DNS-provider
+choices can wait until funding is available; the estimate is not a spending cap.
 
 Local verification passed CloudFormation schema/condition checks (`cfn-lint
 1.60.0`), both workflow checks (`actionlint`), repository lint and types (156 source
 files), 20 AWS regression cases and 16 existing loopback-probe cases. The database
 case used a disposable PostgreSQL database and verified migration privileges,
 denied role administration and refusal to replace an existing role/password.
-AWS APIs, provisioning, real ALB routing, Secrets Manager injection, ECR scanning
-and the hosted walkthrough remain to be verified with account access.
+Read-only AWS checks on 2026-11-07 accepted both CloudFormation templates and
+reported PostgreSQL 16.15 as available in Ireland. Provisioning, real ALB routing,
+Secrets Manager injection, ECR scanning and the hosted walkthrough remain to be
+verified after deployment.
 
-Required next inputs:
+Inputs to revisit when funding is available:
 
-1. AWS account ID and deployment access through an operator's authenticated
-   AWS CLI/SSO session. An account ID is not a credential. Never send passwords or
-   access keys in chat; use AWS's authentication flow.
+1. Keep operator access current through AWS CLI/SSO. Account ID and operator
+   access were verified on 2026-11-07; the account ID is recorded in GitHub's
+   `staging` environment. An account ID is not a credential. Enter one-time
+   authorization codes directly in the AWS terminal prompt, and use AWS's
+   authentication flow for passwords and verification.
 2. AWS region and a monthly staging budget, with an itemized regional estimate.
 3. A staging hostname under a domain the owner controls, DNS access and an issued
    ACM certificate in the same region as the load balancer.
 4. Real SMS/email providers and adapters for the complete account/group walkthrough.
    A healthy backend can be deployed first; phone-code delivery remains unavailable
    until the adapter is implemented and configured. No capture backend is enabled.
+
+## Local work while paid hosting is deferred
+
+Continue the foundation walkthrough locally with synthetic accounts. PostgreSQL,
+Redis and Mailhog run on the development machine, and captured verification
+messages need no paid SMS/email provider. Use the existing
+[authentication walkthrough](AUTHENTICATION.md#register-verify-log-in-locally)
+and [group guide](GROUPS.md); a local result does not verify hosted deployment.
+
+Use a private, ignored `.env` based on [.env.example](../.env.example), with
+development settings and independent Django, PostgreSQL, RSA JWT and Fernet
+keys. Keep these local keys separate from any future staging secrets. The checked
+workspace has a Python virtualenv, but lacks Docker Compose v2 and access to the
+Docker daemon. On 2026-11-07, the current `student` account was refused sudo
+access. Docker setup was not completed and this attempt started no local services.
+The owner will continue on their own laptop after it returns from repair; its
+operating system remains to be confirmed. Enable a working local Docker/Compose
+installation on that laptop and prepare its private `.env` before running:
+
+```sh
+docker compose build web
+docker compose up -d postgres redis mailhog
+docker compose run --rm web python manage.py migrate --noinput
+docker compose up -d web worker beat
+```
+
+Open `http://localhost:8000/api/docs/` for the API and
+`http://localhost:8025` for captured verification messages. Preserve existing
+database volumes. This path uses local services and creates no AWS resources.
 
 ## Proposed topology
 
@@ -68,10 +117,12 @@ public listener routes requests to 8000. Wildcard Django hosts are not required.
 
 ## Cost estimate before provisioning
 
-Estimate the configuration above in the [AWS Pricing Calculator](https://calculator.aws/)
-for the chosen region and 730 hours/month. Include every row below, rather than
-only the application container. Save the dated calculator link and total here
-after the owner supplies a region and budget.
+The [2026-11-07 draft](AWS_STAGING_COST_ESTIMATE.md) prices the saved configuration
+in Ireland using AWS's published unit rates; its [JSON snapshot](AWS_STAGING_COST_ESTIMATE.json)
+records the rates, inputs and arithmetic. After the owner supplies a region and
+budget, revise the inputs as needed and reproduce the final configuration in the
+[AWS Pricing Calculator](https://calculator.aws/) at 730 hours/month. Include
+every row below and save the dated calculator link and total here.
 
 | Billable item | Estimate input |
 |---|---|
@@ -90,11 +141,29 @@ must be justified by measurements rather than claiming capacity in advance.
 
 ## Prepare the account and registry
 
+The steps below are saved for a future funded deployment. Do not create billable
+resources under the current zero-spend constraint.
+
 Use AWS CLI v2 with an authenticated operator profile in the selected account.
 Verify `aws sts get-caller-identity` and explicitly set the intended region for all
 commands. Configure billing alerts and confirm the estimate before provisioning.
 Templates target ordinary commercial AWS regions; China/GovCloud partitions and
 cross-account/custom-KMS-key secret stores are not configured by this preparation.
+
+For this workspace's temporary login, the identity check is:
+
+```sh
+env AWS_CONFIG_FILE=/tmp/matthy-aws-auth/config \
+    AWS_SHARED_CREDENTIALS_FILE=/tmp/matthy-aws-auth/credentials \
+    AWS_LOGIN_CACHE_DIRECTORY=/tmp/matthy-aws-auth/login-cache \
+    AWS_PAGER= /tmp/matthy-aws-tools/bin/aws --profile matthy-staging \
+    sts get-caller-identity --region eu-west-1
+```
+
+Keep the same configuration/cache settings and `--profile matthy-staging` on
+subsequent local operator commands. These temporary paths may need rebuilding
+after a workspace restart; other operators should use their own configured
+profile. The GitHub workflow obtains separate temporary credentials through OIDC.
 
 Before manual dispatch, merge this preparation through a PR into `develop` and
 promote it through a release PR into the default branch `main`. GitHub requires

@@ -80,37 +80,58 @@ branches. See [Branch Protection](BRANCH_PROTECTION.md) for verification command
 
 ## Remaining work
 
-### Next milestone: staging and a foundation walkthrough
+### Next milestone: local foundation walkthrough; paid staging deferred
 
 Staging preparation has now started. [STAGING.md](STAGING.md) records the container
 fixes, environment checklist and release procedure. GitHub's `staging` environment
 was created with protected-branch deployment restrictions. Local probe regressions
 (16 cases) and build-only static collection passed; image/runtime validation is
-provided by the new Container workflow. Hosting target, domain, deployment access,
-real delivery adapters and deployed walkthrough results remain pending. No hosted
-staging URL or live deployment is recorded yet.
+provided by the new Container workflow. Hosted infrastructure, domain, release
+role and secrets, real delivery adapters and deployed walkthrough results remain
+pending. No hosted staging URL or live deployment is recorded yet.
 
 AWS was selected as the hosting direction after the staging container work.
 [AWS_STAGING.md](AWS_STAGING.md) records the CloudFormation templates, temporary
 GitHub OIDC credentials, explicit migration/release workflow, internal ALB probe
-and restart procedure. The workspace has no AWS credentials/profile or account
-connection. Account ID/access, region, domain/certificate and budget remain needed;
-no AWS resources or paid services have been created. The first AWS stack deploys
-web only; worker/beat services remain to be added when background tasks exist.
+and restart procedure. On 2026-11-07, the `matthy-staging` operator account/profile
+was authenticated and verified with AWS CLI 2.39.3. Temporary login files live
+outside the repository and access must be rechecked when resuming. Ireland is
+provisional. On 2026-11-07, the owner reported no funds available, so the current
+hosting budget is **$0** and paid provisioning is **deferred**. Region and
+domain/certificate choices can wait until funding is available.
+The [dated cost estimate](AWS_STAGING_COST_ESTIMATE.md) records $135.32/month core
+hosting and a $167.39/month planning example before tax/credits. No non-deleted
+`ihweza-staging*` stacks were found in Ireland; this work has not provisioned paid
+infrastructure. A limited read-only check also found no project-named VPC, RDS,
+Redis, ECS cluster or ECR repository in Ireland; other resources/regions and the
+account's overall billing state were not audited. The first AWS stack deploys
+web only; worker/beat services remain
+to be added when background tasks exist.
 PR #5 container preparation is merged into `develop` at
 [`c018875`](https://github.com/maihwe/matthy.app/commit/c018875064b2b8d715027e2419ce3e97b73485bf);
 its [CI](https://github.com/maihwe/matthy.app/actions/runs/42292627376) and
 [actual Docker/runtime check](https://github.com/maihwe/matthy.app/actions/runs/42292627478)
 both passed. AWS configuration is a separate preparation change, not a hosted deployment.
 Local AWS validation passed templates/workflows, lint/types, 20 AWS cases and 16
-existing probe cases. AWS API/hosting validation is pending account access. The
+existing probe cases. Read-only AWS checks accepted both templates and reported
+PostgreSQL 16.15 as available in Ireland. Hosted routing, secrets, image scanning
+and the deployed walkthrough remain to be verified after provisioning. The
 manual AWS workflow must also exist on default `main` before dispatching `develop`;
 promote the prepared configuration through a release PR after its CI passes.
 
-This is the agreed next starting point, not a deployment already performed.
+The immediate next step is the
+[local foundation walkthrough](AWS_STAGING.md#local-work-while-paid-hosting-is-deferred)
+with synthetic accounts and captured verification messages. The checked workspace
+has a Python virtualenv but needs Docker Compose v2 and Docker daemon access before
+the Compose stack can start. The current `student` account was refused sudo access
+on 2026-11-07. The owner will resume local setup on their own laptop after repair;
+confirm its operating system when it is available. This setup attempt started no
+local services. The saved AWS preparation remains available for later.
 
-- Select/confirm the staging hosting account, domain, PostgreSQL 16 and Redis
-  services, and deployment/registry approach. Staging settings exist, but hosted
+The deployment sequence below applies when funding becomes available:
+
+- Confirm the staging region, budget and domain; review the dated cost estimate
+  and deployment/registry approach. Staging settings exist, but hosted
   infrastructure, domain, secrets and deployment pipeline were not verified.
 - Provision distinct staging secrets through the host's secret store: Django
   configuration, database/Redis credentials, matching RSA `JWT_SIGNING_KEY` and
@@ -200,14 +221,14 @@ the current arithmetic design. Do not infer these decisions from working tests.
    `develop` with the documented self-review and passing checks; promote to `main`
    through a release PR. Direct pushes, force pushes and branch deletion are blocked
    on the protected branches, including for the current administrator.
-4. Continue from [AWS_STAGING.md](AWS_STAGING.md): obtain AWS account access, region,
-   hostname and budget; estimate/review the proposed resources; then follow registry,
-   secret, infrastructure, database-initialization and release ordering. If AWS
-   access is still absent, finish independent preparation and report the missing input.
+4. Follow the local-work section of [AWS_STAGING.md](AWS_STAGING.md) while the
+   hosting budget is $0. Keep paid provisioning deferred and do not purchase a
+   domain or delivery service. Revisit region, hostname and the saved cost estimate
+   when the owner has funds available, before following the AWS deployment sequence.
 5. After meaningful progress, update this handover with deployed/saved commit links,
    verification results and remaining items. Do not rerun the long local suite just
    to recover context or push unchanged code; run checks appropriate to new work and
    satisfy the hosted CI gates required for merging.
 
-Suggested restart request: **“Read docs/PROJECT_HANDOVER.md and continue with staging
-readiness and the registration/login/group walkthrough.”**
+Suggested restart request: **“Read docs/PROJECT_HANDOVER.md and continue local
+development and the registration/login/group walkthrough within a $0 hosting budget.”**
