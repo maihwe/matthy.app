@@ -39,6 +39,14 @@ def security_settings(monkeypatch, keypair) -> None:
     monkeypatch.setattr(settings, "MFA_ENCRYPTION_KEYS", Fernet.generate_key().decode())
 
 
+@pytest.fixture(autouse=True)
+def stable_mfa_clock(monkeypatch) -> None:
+    # Enrollment uses the previous TOTP step so login can use the current one.
+    # Keep both valid when a request straddles a real 30-second boundary.
+    stamp = timezone.now()
+    monkeypatch.setattr(timezone, "now", lambda: stamp)
+
+
 @pytest.fixture
 def client() -> APIClient:
     return APIClient(REMOTE_ADDR=f"2001:db8::{uuid.uuid4().int % 65535:x}")
