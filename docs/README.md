@@ -36,6 +36,7 @@ implementation teaches something the design did not anticipate.
 
 | Document | Status |
 |---|---|
+| [AI Automation](AI_AUTOMATION.md) | Background support/draft API and advisory PR review; requires provider configuration and worker/beat services |
 | [Project Handover](PROJECT_HANDOVER.md) | Start here — completed milestone, saved GitHub/CI state, remaining work and next-session checklist (2026-11-06) |
 | [Staging Preparation](STAGING.md) | Container configuration, GitHub staging environment, hosting/provider prerequisites and release procedure |
 | [AWS Staging](AWS_STAGING.md) | AWS templates, account/budget/DNS inputs, OIDC deployment, secrets, database initialization and release/recovery ordering |

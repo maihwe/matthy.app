@@ -44,6 +44,10 @@ CloudFormation templates, deployment workflow and remaining account/DNS inputs.
 The product brand is **IHWEZA** — *Together We Move.* The repository, Python package and
 Django project name remain `matthy.app` / `config`.
 
+[AI automation](docs/AI_AUTOMATION.md) adds background support answers and announcement
+drafts through the API and a staff dashboard at `/admin/ai/`, plus advisory AI reports for pull requests. Enable each
+integration with its documented provider credentials and runtime configuration.
+
 The project brief is a 41-page specification held outside this repository.
 
 ## Development phases (§46)

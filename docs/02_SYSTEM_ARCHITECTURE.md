@@ -192,7 +192,7 @@ below it. Never from a layer above.**
 | **L0 — Foundation** | `accounts`, `locations`, `audit` | Identity, place, and the audit trail. Depend on nothing. |
 | **L1 — Structure** | `groups`, `contributions`, `collectors` | Who contributes what, where, and who collects it. |
 | **L2 — Financial** | `ledger`, `payments`, `loans`, `disbursements` | Movement of money. |
-| **L3 — Engagement** | `notifications`, `communications`, `reports` | Reaching people and explaining what happened. |
+| **L3 — Engagement** | `notifications`, `communications`, `reports`, `automation` | Reaching people, explaining what happened, and private AI support/drafts. External clients live in `integrations/`. |
 | **L4 — Presentation** | `administration` | Platform admin surfaces. |
 
 ### 4.2 The ledger inversion

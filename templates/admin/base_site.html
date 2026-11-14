@@ -1,0 +1,12 @@
+{% extends "admin/base.html" %}
+{% load static %}
+
+{% block extrastyle %}{{ block.super }}<link rel="stylesheet" href="{% static 'automation/admin.css' %}">{% endblock %}
+
+{% block branding %}
+<div id="site-name"><a href="{% url 'admin:index' %}">{{ site_header }}</a></div>
+{% endblock %}
+
+{% block nav-global %}
+{% if has_permission %}<nav aria-label="Workspace"><a href="{% url 'admin:ai_dashboard' %}" class="ai-workspace-link">AI workspace</a></nav>{% endif %}
+{% endblock %}

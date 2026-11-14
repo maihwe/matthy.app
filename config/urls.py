@@ -26,6 +26,7 @@ admin.site.index_title = f"{branding.BRAND_NAME} — {branding.BRAND_TAGLINE}"
 # added without its permission class is a test failure (SEC-AUTHZ-001), not
 # this file's problem.
 api_v1_patterns: list[URLPattern | URLResolver] = [
+    path("ai/", include("apps.automation.urls")),
     path("auth/", include("apps.accounts.urls")),
     path("groups/", include("apps.groups.urls")),
     path("platform/roles/", group_views.PlatformRolesView.as_view(), name="platform-roles"),

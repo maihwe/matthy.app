@@ -191,7 +191,7 @@ markers = [
 
 [tool.coverage.run]
 branch = true
-source = ["apps", "config"]
+source = ["apps", "config", "integrations"]
 omit = ["*/migrations/*", "*/tests/*", "config/settings/*", "config/celery.py"]
 
 [tool.coverage.report]

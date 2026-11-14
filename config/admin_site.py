@@ -35,7 +35,13 @@ from config.ratelimit import RateLimiterUnavailable
 
 class MFAAdminSite(AdminSite):
     def get_urls(self) -> list[URLPattern | URLResolver]:
-        return [path("mfa/", self.mfa_login, name="mfa"), *super().get_urls()]
+        from apps.automation.dashboard import dashboard
+
+        return [
+            path("ai/", self.admin_view(dashboard), name="ai_dashboard"),
+            path("mfa/", self.mfa_login, name="mfa"),
+            *super().get_urls(),
+        ]
 
     def has_permission(self, request: HttpRequest) -> bool:
         return browser.authenticated(request) is not None

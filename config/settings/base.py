@@ -14,6 +14,8 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
+from django.core.exceptions import ImproperlyConfigured
+
 from config.env import env, env_bool, env_int, env_list, require_env
 
 # ---------------------------------------------------------------------------
@@ -74,6 +76,7 @@ LOCAL_APPS: list[str] = [
     # will `groups`; the module itself imports nothing from either.
     "apps.locations",
     "apps.groups",
+    "apps.automation",
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -267,6 +270,10 @@ SPECTACULAR_SETTINGS = {
     "SCHEMA_PATH_PREFIX": "/api/v1",
     "COMPONENT_SPLIT_REQUEST": True,
     "ENUM_NAME_OVERRIDES": {
+        # Preserve the published session enum when another app also has a kind.
+        "KindEnum": "apps.accounts.constants.SessionKind.choices",
+        "AutomationKindEnum": "apps.automation.models.AutomationKind.choices",
+        "AutomationStatusEnum": "apps.automation.models.AutomationStatus.choices",
         "GroupStatusEnum": "apps.groups.constants.GroupStatus.choices",
         "MemberStatusEnum": "apps.groups.constants.MemberStatus.choices",
     },
@@ -374,9 +381,24 @@ CELERY_TASK_TRACK_STARTED = True
 CELERY_WORKER_PREFETCH_MULTIPLIER = 1
 CELERY_TASK_TIME_LIMIT = env_int("CELERY_TASK_TIME_LIMIT_SECONDS", default=600)
 CELERY_TASK_SOFT_TIME_LIMIT = env_int("CELERY_TASK_SOFT_TIME_LIMIT_SECONDS", default=540)
-CELERY_BEAT_SCHEDULE: dict[str, dict[str, str]] = {}
-"""Scheduled work arrives with the modules that need it — contribution
-reminders in Phase 2, reconciliation sweeps in Phase 3 (02 §5.5)."""
+CELERY_BEAT_SCHEDULE: dict[str, dict[str, Any]] = {
+    "dispatch-ai-automations": {
+        "task": "apps.automation.tasks.dispatch_automations",
+        "schedule": 60.0,
+    },
+}
+
+# Optional AI automation. Keys are supplied only by the deployment secret store.
+AI_AUTOMATION_ENABLED = env_bool("AI_AUTOMATION_ENABLED", default=False)
+OPENAI_API_KEY = env("OPENAI_API_KEY", default="") or ""
+OPENAI_MODEL = env("OPENAI_MODEL", default="gpt-4.1-mini") or "gpt-4.1-mini"
+AI_DAILY_REQUEST_LIMIT = env_int("AI_DAILY_REQUEST_LIMIT", default=20)
+AI_TIMEOUT_SECONDS = env_int("AI_TIMEOUT_SECONDS", default=45)
+AI_MAX_OUTPUT_TOKENS = env_int("AI_MAX_OUTPUT_TOKENS", default=1200)
+if not 1 <= AI_TIMEOUT_SECONDS <= 120:
+    raise ImproperlyConfigured("AI_TIMEOUT_SECONDS must be between 1 and 120.")
+if AI_DAILY_REQUEST_LIMIT < 1 or not 1 <= AI_MAX_OUTPUT_TOKENS <= 4000:
+    raise ImproperlyConfigured("AI request limit must be positive; output tokens must be 1-4000.")
 
 # ---------------------------------------------------------------------------
 # Internationalisation
