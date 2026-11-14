@@ -80,6 +80,37 @@ branches. See [Branch Protection](BRANCH_PROTECTION.md) for verification command
 
 ## Remaining work
 
+### AI automation preparation — 2026-11-14
+
+The local `feature/ai-automation` change adds private, asynchronous support answers
+and announcement drafts, durable PostgreSQL jobs, Celery dispatch/recovery and an
+advisory GitHub Actions PR-review report. [AI_AUTOMATION.md](AI_AUTOMATION.md) documents
+the endpoints, provider configuration, usage limits and enablement procedure.
+Apply the new automation migration and provision the provider key plus worker/beat
+services before enabling the API. Configure the separate Actions key and
+`AI_REVIEW_ENABLED` variable after the review implementation reaches its trusted
+base branch. Provider calls, hosted workflow runs and deployment remain unverified;
+no live integration is claimed here.
+
+Local validation passed 120 distinct API/unit/security/regression tests across the
+focused runs, including concurrent duplicate delivery against isolated PostgreSQL 16.
+The 44 AI-specific cases passed with 96.60% combined line/branch coverage for the new
+automation/client code. Repository lint, formatting, types, import contracts,
+migration drift, OpenAPI generation/validation and AI-workflow syntax checks passed.
+
+The follow-up adds an MFA-protected browser dashboard at `/admin/ai/`, linked from
+administration, with support/draft forms, private history, polling and copying.
+A private git-ignored local `.env` was prepared with fresh development credentials;
+OpenAI remains unconfigured. The dashboard, browser MFA and AI regression run passed
+128 tests against isolated PostgreSQL 16 and Redis, with 97.30% combined coverage
+for automation/client code in that run. A subsequent focused dashboard run passed
+all 22 cases after preserving the selected announcement tool. Headless Chrome
+verified MFA sign-in, task switching, submission, automatic polling, safe text
+rendering and desktop/mobile layout; the narrow-screen overflow found during that
+check was fixed. Preview screenshots are in `/tmp/ihweza-dashboard-check/` and use
+synthetic data. Types passed and the generated API contract was unchanged. Live provider calls, hosted
+review activation and deployment remain pending configuration.
+
 ### Next milestone: staging and a foundation walkthrough
 
 Staging preparation has now started. [STAGING.md](STAGING.md) records the container

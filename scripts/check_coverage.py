@@ -76,6 +76,7 @@ SCOPES: tuple[tuple[str, tuple[str, ...], float, bool], ...] = (
         (
             "apps/",
             "config/",
+            "integrations/",
         ),
         80.0,
         False,

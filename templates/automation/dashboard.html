@@ -1,0 +1,66 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AI workspace · {{ brand_name }}</title>
+  <link rel="stylesheet" href="{% static 'automation/dashboard.css' %}">
+  <script src="{% static 'automation/dashboard.js' %}" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#workspace">Skip to workspace</a>
+  <div class="app-shell">
+    <aside class="sidebar" aria-label="Workspace navigation">
+      <a class="brand" href="{% url 'admin:ai_dashboard' %}"><span class="brand-mark" aria-hidden="true">i</span><span>{{ brand_name }}<small>{{ brand_tagline }}</small></span></a>
+      <div class="workspace-name"><span class="sparkle" aria-hidden="true">✦</span> AI workspace</div>
+      <p class="nav-label">YOUR TOOLS</p>
+      <nav class="tool-navigation" aria-label="AI tools">
+        <a data-kind="SUPPORT_ANSWER" href="{% url 'admin:ai_dashboard' %}?kind=SUPPORT_ANSWER"{% if active_kind == 'SUPPORT_ANSWER' %} class="active" aria-current="page"{% endif %}><span aria-hidden="true">?</span><span>Ask a question<small>Help with {{ brand_name }}</small></span></a>
+        <a data-kind="DRAFT_ANNOUNCEMENT" href="{% url 'admin:ai_dashboard' %}?kind=DRAFT_ANNOUNCEMENT"{% if active_kind == 'DRAFT_ANNOUNCEMENT' %} class="active" aria-current="page"{% endif %}><span aria-hidden="true">✎</span><span>Draft an announcement<small>Find the right words</small></span></a>
+      </nav>
+      <div class="sidebar-bottom">
+        <div class="usage-card"><p>Available requests</p><strong>{{ requests_remaining }}<span> / {{ request_limit }}</span></strong><small>In the past 24 hours</small></div>
+        <a class="admin-link" href="{% url 'admin:index' %}"><span aria-hidden="true">↗</span> Administration</a>
+        <form action="{% url 'admin:logout' %}" method="post">{% csrf_token %}<button class="sign-out" type="submit">Sign out</button></form>
+      </div>
+    </aside>
+    <main id="workspace" class="workspace">
+      <header class="workspace-header"><div><span class="eyebrow">A LITTLE HELP, WHEN YOU NEED IT</span><h1>Your AI workspace<span aria-hidden="true">✦</span></h1><p>Ask, draft, and make room for what matters.</p></div><span class="availability{% if not ai_available %} unavailable{% endif %}"><span aria-hidden="true"></span>{% if ai_available %}Ready to help{% else %}Currently unavailable{% endif %}</span></header>
+      {% if not ai_available %}<div class="notice" role="status">AI assistance is temporarily unavailable. Your saved results are still here.</div>{% endif %}
+      <div class="workspace-grid">
+        <section class="composer card" aria-labelledby="composer-title">
+          <div class="card-heading"><span class="section-icon" aria-hidden="true">✦</span><div><h2 id="composer-title">{% if active_kind == 'DRAFT_ANNOUNCEMENT' %}A clearer message starts here{% else %}What’s on your mind?{% endif %}</h2><p id="composer-subtitle">{% if active_kind == 'DRAFT_ANNOUNCEMENT' %}Turn your notes into an announcement you can review.{% else %}Get help with accounts, invitations, and group roles.{% endif %}</p></div></div>
+          <form method="post" action="{% url 'admin:ai_dashboard' %}" id="automation-form">
+            {% csrf_token %}{{ form.idempotency_key }}
+            {% if form.errors %}<div class="form-errors" role="alert"><p>Please check your request.</p>{{ form.non_field_errors }}{% for field in form %}{% for error in field.errors %}<p>{{ field.label }}: {{ error }}</p>{% endfor %}{% endfor %}</div>{% endif %}
+            <div class="form-options"><div><label for="id_kind">Tool</label>{{ form.kind }}</div><div><label for="id_language">Response language</label>{{ form.language }}</div></div>
+            <label class="prompt-label" for="id_input_text" id="prompt-label">{% if active_kind == 'DRAFT_ANNOUNCEMENT' %}Announcement details{% else %}Your question{% endif %}</label>
+            {{ form.input_text }}
+            <div class="prompt-meta"><small id="prompt-help">{% if active_kind == 'DRAFT_ANNOUNCEMENT' %}Include the purpose, audience, date, and any details you have.{% else %}A little context helps us give you a useful answer.{% endif %}</small><small id="character-count">{{ form.input_text.value|default:''|length }} / 4,000</small></div>
+            <div class="suggestions" id="suggestions" aria-label="Try a starting point"><span>Try asking</span><button type="button" data-prompt="How do group invitations work?">Group invitations ↗</button><button type="button" data-prompt="Explain how MFA protects my account.">Account security ↗</button></div>
+            <div class="composer-footer"><p>Your results are visible only to you.</p><button class="primary-button" type="submit" id="submit-button"{% if not ai_available %} disabled{% endif %}><span id="submit-label">{% if active_kind == 'DRAFT_ANNOUNCEMENT' %}Create draft{% else %}Ask AI{% endif %}</span><span aria-hidden="true">↗</span></button></div>
+          </form>
+        </section>
+        <section class="result card" aria-labelledby="result-title" id="result-panel"{% if selected_job %} data-poll-url="{{ api_url }}" data-status="{{ selected_job.status }}"{% endif %}>
+          <div class="result-heading"><div><span class="eyebrow">MADE FOR YOU</span><h2 id="result-title">{% if selected_job.kind == 'DRAFT_ANNOUNCEMENT' %}Your announcement{% else %}Your answer{% endif %}</h2></div>{% if selected_job %}<span class="status-badge" id="result-status" data-status="{{ selected_job.status }}">{{ selected_status_label }}</span>{% endif %}</div>
+          {% if selected_job %}
+            <p class="request-preview">{{ selected_job.input_text }}</p>
+            <div id="result-message" class="result-message" role="status" aria-live="polite">{% if selected_job.status == 'QUEUED' %}Your request is saved. We’ll get started shortly.{% elif selected_job.status == 'RUNNING' %}Working on your request. Your result will appear here.{% elif selected_job.status == 'FAILED' %}We couldn’t complete this request. Please try again later.{% endif %}</div>
+            <pre id="ai-output" class="ai-output"{% if not selected_job.output_text %} hidden{% endif %}>{{ selected_job.output_text }}</pre>
+            <div class="result-actions"><button type="button" class="secondary-button" id="copy-result"{% if not selected_job.output_text %} disabled{% endif %}>Copy text</button><a class="text-link" href="{% url 'admin:ai_dashboard' %}?request={{ selected_job.public_id }}">Refresh result</a></div>
+            <p class="result-footnote">{% if selected_job.kind == 'DRAFT_ANNOUNCEMENT' %}Review your draft before sharing it with your group.{% else %}Need more help? Your group administrator can help with account-specific questions.{% endif %}</p>
+          {% else %}
+            <div class="empty-result"><div class="empty-illustration" aria-hidden="true"><span>✦</span><i></i><i></i><i></i></div><h3>A little clarity is on its way</h3><p>Send a question or create a draft.<br>Your result will appear right here.</p></div>
+          {% endif %}
+        </section>
+      </div>
+      <section class="history card" aria-labelledby="history-title">
+        <div class="history-heading"><div><h2 id="history-title">Recent requests</h2><p>A place to pick up where you left off.</p></div><span class="history-count">{{ recent_jobs|length }} saved</span></div>
+        {% if recent_jobs %}<div class="history-list">{% for item in recent_jobs %}<a class="history-row{% if selected_job.public_id == item.job.public_id %} selected{% endif %}" href="{% url 'admin:ai_dashboard' %}?request={{ item.job.public_id }}"><span class="history-icon" aria-hidden="true">{% if item.job.kind == 'DRAFT_ANNOUNCEMENT' %}✎{% else %}?{% endif %}</span><span class="history-description"><strong>{{ item.job.input_text|truncatechars:78 }}</strong><small>{{ item.job.get_kind_display }} · {{ item.job.created_at|date:'M j, H:i' }}</small></span><span class="status-badge" data-status="{{ item.job.status }}"{% if selected_job.public_id == item.job.public_id %} id="history-selected-status"{% endif %}>{{ item.status_label }}</span><span class="history-arrow" aria-hidden="true">↗</span></a>{% endfor %}</div>{% else %}<p class="history-empty">Your first request will start your history.</p>{% endif %}
+      </section>
+      <footer class="workspace-footer"><span>{{ brand_name }} · {{ brand_tagline }}</span><span>More time for your community.</span></footer>
+    </main>
+  </div>
+</body>
+</html>

@@ -4,6 +4,10 @@ title = "matthy secret scan"
 useDefault = true
 
 [allowlist]
-description = "Django's consumed_at__isnull=True predicate checks for an unused token"
+description = "Django token predicate and the fixed public idempotency UUID in the AI API example"
 regexTarget = "secret"
-regexes = ['''^consumed_at__isnull=True$''']
+regexes = [
+    '''^consumed_at__isnull=True$''',
+    # docs/AI_AUTOMATION.md: caller-generated request identity, not an API credential.
+    '''^8dcf28f1-e540-4515-84e4-274726a8e761$''',
+]

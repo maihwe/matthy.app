@@ -7,6 +7,55 @@ info:
 
     Money is a decimal string in the currency's major unit (04 §1.3). Identifiers are UUIDs, never internal integer keys (04 §1).
 paths:
+  /api/v1/ai/automations/:
+    post:
+      operationId: ai_automations_create
+      tags:
+      - automation
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AutomationInputRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '202':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AutomationEnvelope'
+          description: ''
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AutomationEnvelope'
+          description: ''
+  /api/v1/ai/automations/{public_id}/:
+    get:
+      operationId: ai_automations_retrieve
+      parameters:
+      - in: path
+        name: public_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - automation
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AutomationEnvelope'
+          description: ''
   /api/v1/auth/devices/:
     get:
       operationId: auth_devices_retrieve
@@ -2082,6 +2131,116 @@ components:
           format: uuid
       required:
       - role
+    Automation:
+      type: object
+      properties:
+        public_id:
+          type: string
+          format: uuid
+          readOnly: true
+        kind:
+          allOf:
+          - $ref: '#/components/schemas/AutomationKindEnum'
+          readOnly: true
+        language:
+          allOf:
+          - $ref: '#/components/schemas/AutomationLanguageEnum'
+          readOnly: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/AutomationStatusEnum'
+          readOnly: true
+        output_text:
+          type: string
+          readOnly: true
+        error_code:
+          type: string
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        completed_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+      required:
+      - completed_at
+      - created_at
+      - error_code
+      - kind
+      - language
+      - output_text
+      - public_id
+      - status
+    AutomationEnvelope:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/Automation'
+      required:
+      - data
+    AutomationInputLanguageEnum:
+      enum:
+      - en
+      - fr
+      - sw
+      type: string
+      description: |-
+        * `en` - en
+        * `fr` - fr
+        * `sw` - sw
+    AutomationInputRequest:
+      type: object
+      properties:
+        kind:
+          $ref: '#/components/schemas/AutomationKindEnum'
+        input_text:
+          type: string
+          minLength: 1
+          maxLength: 4000
+        language:
+          allOf:
+          - $ref: '#/components/schemas/AutomationInputLanguageEnum'
+          default: en
+        idempotency_key:
+          type: string
+          format: uuid
+      required:
+      - idempotency_key
+      - input_text
+      - kind
+    AutomationKindEnum:
+      enum:
+      - SUPPORT_ANSWER
+      - DRAFT_ANNOUNCEMENT
+      type: string
+      description: |-
+        * `SUPPORT_ANSWER` - Support answer
+        * `DRAFT_ANNOUNCEMENT` - Announcement draft
+    AutomationLanguageEnum:
+      enum:
+      - en
+      - fr
+      - sw
+      type: string
+      description: |-
+        * `en` - English
+        * `fr` - French
+        * `sw` - Swahili
+    AutomationStatusEnum:
+      enum:
+      - QUEUED
+      - RUNNING
+      - SUCCEEDED
+      - FAILED
+      type: string
+      description: |-
+        * `QUEUED` - Queued
+        * `RUNNING` - Running
+        * `SUCCEEDED` - Succeeded
+        * `FAILED` - Failed
     Country:
       type: object
       description: |-

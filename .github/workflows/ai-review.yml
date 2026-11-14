@@ -1,0 +1,58 @@
+name: AI review
+
+on:
+  pull_request:
+    branches: [main, develop]
+    types: [opened, synchronize, reopened, ready_for_review]
+  workflow_dispatch:
+    inputs:
+      base_sha:
+        description: Full base commit SHA to compare
+        required: true
+        type: string
+      head_sha:
+        description: Full head commit SHA to review
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ai-review-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    if: >-
+      vars.AI_REVIEW_ENABLED == 'true' &&
+      ((github.event_name == 'workflow_dispatch' &&
+      (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')) ||
+      (github.event.pull_request.head.repo.full_name == github.repository &&
+      !github.event.pull_request.draft))
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Check out trusted review implementation
+        uses: actions/checkout@v4
+        with:
+          # Never execute the PR's changed code with the provider key available.
+          ref: ${{ github.event.pull_request.base.sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Generate advisory report
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENAI_REVIEW_MODEL: ${{ vars.OPENAI_REVIEW_MODEL }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          AI_REVIEW_BASE_SHA: ${{ github.event.pull_request.base.sha || inputs.base_sha }}
+          AI_REVIEW_HEAD_SHA: ${{ github.event.pull_request.head.sha || inputs.head_sha }}
+        run: python scripts/ai_review.py --output ai-review.md
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ai-review
+          path: ai-review.md
+          retention-days: 7
+          if-no-files-found: error
